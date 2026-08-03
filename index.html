@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>카피퀘스트: 잉크의 대륙</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- 인트로 / 캐릭터 생성 -->
+    <section id="screen-intro" class="screen">
+      <div class="intro-box">
+        <h1>🖋️ 카피퀘스트</h1>
+        <p class="subtitle">잉크의 대륙에서 살아남는 카피라이팅 RPG</p>
+        <div class="lore">
+          <p>대침묵(大沈默) 이후, 이 대륙에서는 <strong>사람의 주목(注目)</strong>이 곧 화폐가 되었다.</p>
+          <p>말로 발길을 멈추게 하는 자는 부유해지고, 그러지 못하는 자의 가게는 조용히 잊혀 사라진다.</p>
+          <p>당신은 이제 막 <strong>워드스미스 길드</strong>에 지원한 견습생. 퀘스트를 완수하고, 메달을 모으고, 언어의 용병으로 성장하라.</p>
+        </div>
+        <input id="input-name" type="text" maxlength="12" placeholder="워드스미스의 이름" />
+        <br />
+        <button id="btn-start" class="btn primary">길드에 등록하기</button>
+      </div>
+    </section>
+
+    <!-- 허브(마을) -->
+    <section id="screen-hub" class="screen">
+      <div class="player-panel">
+        <div class="player-row">
+          <span id="player-name"></span>
+          <span id="player-level"></span>
+          <span id="player-xp"></span>
+        </div>
+        <div class="xp-bar"><div id="xp-fill"></div></div>
+      </div>
+
+      <h2 class="section-title">🗺️ 퀘스트 게시판</h2>
+      <div id="quest-list"></div>
+
+      <h2 class="section-title">🏅 업적 메달 (<span id="medal-count"></span>)</h2>
+      <div id="medal-list" class="medal-grid"></div>
+
+      <p class="footer-note">
+        진행 상황은 이 브라우저에 자동 저장됩니다.
+        <button id="btn-reset" class="btn secondary small">처음부터 다시</button>
+      </p>
+    </section>
+
+    <!-- 퀘스트 진행 -->
+    <section id="screen-quest" class="screen">
+      <div class="top-bar">
+        <button id="q-back" class="btn secondary small">← 마을로</button>
+      </div>
+      <div class="quest-panel">
+        <h2 id="q-title"></h2>
+        <p id="q-client"></p>
+        <p id="q-briefing"></p>
+        <p class="mission-label">📌 미션</p>
+        <p id="q-mission"></p>
+        <textarea id="q-input" placeholder="여기에 카피를 작성하세요..."></textarea>
+        <p class="char-row"><span id="q-charcount">0자</span></p>
+        <button id="q-submit" class="btn primary">카피 제출하기</button>
+        <div id="q-result" class="hidden"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="js/quests.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
