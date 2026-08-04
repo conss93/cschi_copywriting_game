@@ -26,6 +26,59 @@ body {
 
 .hidden { display: none !important; }
 
+/* ---------- 타이틀 화면 ---------- */
+.fullscreen.title {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.25), transparent 60%),
+    linear-gradient(180deg, #14101c 0%, #241a30 55%, #33203a 100%);
+  cursor: default;
+}
+.title-inner { text-align: center; }
+.title-tag { color: var(--dim); font-size: 0.9rem; letter-spacing: 0.2em; margin-bottom: 10px; }
+.title-logo {
+  font-size: clamp(2.6rem, 10vw, 4.4rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  text-shadow: 0 4px 0 #8a6a20, 0 8px 24px rgba(240, 208, 96, 0.35);
+}
+.title-sub { color: var(--ink); font-size: 1.1rem; letter-spacing: 0.5em; margin-top: 4px; }
+.title-deco { font-size: 2rem; margin: 18px 0 6px; animation: floaty 2.4s ease-in-out infinite; }
+@keyframes floaty { 50% { transform: translateY(-8px); } }
+.title-menu { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 18px; }
+.title-btn {
+  width: 240px;
+  padding: 13px 0;
+  border: 2px solid var(--panel-2);
+  border-radius: 12px;
+  background: rgba(42, 34, 51, 0.85);
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  touch-action: manipulation;
+}
+.title-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
+.title-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.title-btn.small { width: 180px; padding: 9px 0; font-size: 0.9rem; font-weight: 600; }
+.title-ver { color: #5a4e6a; font-size: 0.75rem; margin-top: 22px; }
+
+/* ---------- 목표 바 ---------- */
+#objective-bar {
+  background: rgba(240, 208, 96, 0.1);
+  border-left: 3px solid var(--gold);
+  color: var(--gold);
+  font-size: 0.88rem;
+  padding: 7px 12px;
+}
+
+/* ---------- 도움말 ---------- */
+.help-body { font-size: 0.9rem; margin-bottom: 12px; }
+.help-body p { margin-bottom: 12px; }
+.help-body b { color: var(--gold); }
+.gold { color: var(--gold); }
+
 /* ---------- 인트로 ---------- */
 .fullscreen {
   position: fixed;
@@ -60,7 +113,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
-  z-index: 40;
+  z-index: 55; /* 타이틀(50) 위에서도 열리도록 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -337,4 +390,38 @@ textarea {
 }
 @media (pointer: coarse) {
   #touch-controls { display: flex; }
+}
+
+/* ---------- 모바일 최적화 ---------- */
+button, .btn, .dlg-btn, .hud-btn, .title-btn { touch-action: manipulation; }
+
+@media (max-width: 640px) {
+  #game-wrap { padding: 4px; }
+  #hud { padding: 6px 8px; font-size: 0.85rem; }
+  .hud-xp { width: 56px; }
+  #hud-map { display: none; }
+  .hud-right { gap: 6px; font-size: 0.8rem; }
+  .modal-box { padding: 16px; max-height: 92vh; }
+  .modal { padding: 8px; }
+  /* iOS 자동 확대 방지: 입력 폰트 16px 이상 */
+  input[type="text"], input[type="password"], textarea, .chat-input-row input { font-size: 16px; }
+  #dialogue { padding: 10px 12px; left: 2%; right: 2%; bottom: 2%; }
+  #dlg-text { font-size: 0.9rem; }
+  .dlg-btn { padding: 8px 10px; font-size: 0.85rem; }
+  #touch-controls { padding: 8px 12px; }
+  #touch-controls button { width: 44px; height: 44px; }
+  #pad-action { width: 58px !important; height: 58px !important; }
+  .result-score { font-size: 1.6rem; }
+  #intro-text { font-size: 0.98rem; line-height: 1.9; }
+}
+
+/* 가로 모드 (짧은 화면): 컨트롤을 캔버스 위에 겹침 */
+@media (pointer: coarse) and (max-height: 520px) {
+  #touch-controls {
+    position: fixed;
+    left: 0; right: 0; bottom: 8px;
+    pointer-events: none;
+    padding: 0 16px;
+  }
+  #touch-controls button { pointer-events: auto; opacity: 0.75; }
 }

@@ -73,7 +73,7 @@ const AI = (function () {
       pass: { type: "boolean", description: "70점 이상이면 true" },
       feedback: { type: "string", description: "NPC의 말투로 쓴 첨삭 코멘트 (2~4문장, 좋은 점과 고칠 점을 구체적으로)" },
       tip: { type: "string", description: "다음에 적용할 카피라이팅 팁 한 문장" },
-      revised: { type: "string", description: "제출된 카피를 다듬은 개선 예시 한 줄" },
+      revised: { type: "string", description: "당신(전문 카피라이터)이 이 의뢰를 직접 받았다면 썼을, 소름 돋게 임팩트 있는 완성작 한 줄. 제출작의 좋은 방향은 살리되 수준을 극한까지 끌어올릴 것. 뻔한 수식어 금지, 미션의 글자 수 제한 준수. 읽는 순간 '이게 프로구나' 싶은 문장이어야 한다" },
     },
     required: ["score", "pass", "feedback", "tip", "revised"],
     additionalProperties: false,
@@ -88,7 +88,8 @@ const AI = (function () {
       "2. 구체적인가 (누구나 할 수 있는 뻔한 말은 감점)\n" +
       "3. 타겟에게 행동할 이유를 주는가\n" +
       "4. 미션의 핵심 기법(예: 혜택 번역, 사회적 증거)을 이해하고 썼는가\n\n" +
-      "70점 이상이면 합격이다. 잘 쓴 카피에는 아낌없이 높은 점수를, 성의 없는 제출에는 낮은 점수를 준다. feedback은 반드시 당신의 캐릭터 말투로 쓴다.";
+      "70점 이상이면 합격이다. 잘 쓴 카피에는 아낌없이 높은 점수를, 성의 없는 제출에는 낮은 점수를 준다. feedback은 반드시 당신의 캐릭터 말투로 쓴다.\n\n" +
+      "revised(개선안)는 이 게임의 하이라이트다: 당신이 프로로서 직접 쓴 최고 수준의 완성작 한 줄을 보여줘라. 평범한 모범답안이 아니라, 플레이어가 '와, 이렇게 쓰는 거구나' 하고 소름 돋을 문장이어야 한다. 구체적 디테일, 예상을 비트는 표현, 리듬감을 활용하라.";
     const user =
       "[의뢰 상황]\n" + quest.briefing +
       "\n\n[미션]\n" + quest.mission +

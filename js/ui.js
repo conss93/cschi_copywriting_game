@@ -1,5 +1,5 @@
 // ============================================================
-// UI: 인트로, 대화창, 퀘스트 창, 상점, 설정, 메달, HUD
+// UI: 타이틀, 인트로, 스토리, 대화창, 퀘스트, 상점, 설정, 메달, HUD
 // DOM 오버레이를 관리한다. 게임 로직은 game.js에 있다.
 // ============================================================
 
@@ -34,10 +34,38 @@ const UI = (function () {
     t._timer = setTimeout(() => t.classList.add("hidden"), long ? 4200 : 2200);
   }
 
-  // ---------- 인트로 ----------
+  // ---------- 타이틀 화면 ----------
+  function showTitle(hasSave, handlers) {
+    const screen = $("#title-screen");
+    screen.classList.remove("hidden");
+    const btnContinue = $("#btn-title-continue");
+    btnContinue.disabled = !hasSave;
+    btnContinue.onclick = () => {
+      screen.classList.add("hidden");
+      handlers.onContinue();
+    };
+    $("#btn-title-new").onclick = () => {
+      if (hasSave && !confirm("저장된 게임이 있습니다. 새로 시작하면 기존 진행이 사라져요. 계속할까요?")) return;
+      screen.classList.add("hidden");
+      handlers.onNew();
+    };
+    $("#btn-title-settings").onclick = () => showSettings();
+    $("#btn-title-help").onclick = () => showHelp();
+    $("#btn-title-quit").onclick = () => {
+      window.close();
+      // 브라우저가 창을 못 닫게 하면 안내
+      setTimeout(() => toast("브라우저 탭을 닫아 게임을 종료하세요. 진행은 자동 저장되어 있습니다.", true), 100);
+    };
+  }
+  function backToTitle() {
+    location.reload();
+  }
+
+  // ---------- 인트로 (타자기) ----------
   function runIntro(onDone) {
     const screen = $("#intro-screen");
     const textBox = $("#intro-text");
+    textBox.innerHTML = "";
     screen.classList.remove("hidden");
     let line = 0;
     let charIdx = 0;
@@ -59,7 +87,7 @@ const UI = (function () {
       } else {
         line++;
         charIdx = 0;
-        timer = setTimeout(typeNext, 500);
+        timer = setTimeout(typeNext, 480);
       }
     }
 
@@ -88,15 +116,16 @@ const UI = (function () {
       const canvas = card.querySelector("canvas");
       const ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.scale(2.4, 2.4);
       drawCharacter(ctx, card.dataset.preset, 0, 4, 0, null);
       ctx.restore();
-      card.addEventListener("click", () => {
+      card.onclick = () => {
         cards.forEach((c) => c.classList.remove("selected"));
         card.classList.add("selected");
         chosen = card.dataset.preset;
-      });
+      };
     });
     cards[0].classList.add("selected");
 
@@ -111,6 +140,35 @@ const UI = (function () {
     };
   }
 
+  // ---------- 스토리 컷신 ----------
+  // lines: [{npc: npcId|null, text}], 순서대로 클릭해서 넘긴다
+  function playStory(lines, onDone) {
+    let idx = 0;
+    function showLine() {
+      const line = lines[idx];
+      const npc = line.npc ? NPCS.find((n) => n.id === line.npc) : null;
+      const isLast = idx === lines.length - 1;
+      showDialogue(npc, line.text, [
+        {
+          label: isLast ? "✔ 확인" : "▶ 다음",
+          onClick: () => {
+            idx++;
+            if (idx < lines.length) showLine();
+            else {
+              closeModals();
+              if (onDone) onDone();
+            }
+          },
+        },
+      ]);
+      if (!npc) {
+        $("#dlg-name").textContent = "— 이야기 —";
+        $("#dlg-name").style.color = "#a698bc";
+      }
+    }
+    showLine();
+  }
+
   // ---------- HUD ----------
   function updateHUD(state) {
     $("#hud-name").textContent = state.name;
@@ -118,13 +176,19 @@ const UI = (function () {
     $("#hud-points").textContent = state.points.toLocaleString() + "P";
     const need = state.level * 200;
     $("#hud-xp-fill").style.width = Math.min(100, (state.xp / need) * 100) + "%";
-    $("#hud-ai").textContent = AI.hasKey() ? "🤖 AI 채점" : "📏 기본 채점";
-    const done = Object.keys(state.completed).length;
-    $("#hud-quest").textContent = "📋 " + done + "/" + QUESTS.length;
+    $("#hud-ai").textContent = AI.hasKey() ? "🤖" : "📏";
+    const mains = QUESTS.filter((q) => q.type === "main");
+    const done = mains.filter((q) => state.completed[q.id]).length;
+    $("#hud-quest").textContent = "📋 " + done + "/" + mains.length;
+    $("#hud-map").textContent = "📍 " + currentMap().name;
+  }
+
+  function updateObjective(text) {
+    $("#objective-text").textContent = text || "";
+    $("#objective-bar").classList.toggle("hidden", !text);
   }
 
   // ---------- 대화창 ----------
-  // options: [{label, onClick}]
   function showDialogue(npc, text, options) {
     const box = $("#dialogue");
     box.classList.remove("hidden");
@@ -135,13 +199,12 @@ const UI = (function () {
     const menu = $("#dlg-menu");
     menu.innerHTML = "";
     (options || []).forEach((opt) => {
-      const btn = el("button", "dlg-btn", opt.label);
+      const btn = el("button", "dlg-btn" + (opt.primary ? " primary" : ""), opt.label);
       btn.addEventListener("click", opt.onClick);
       menu.appendChild(btn);
     });
   }
 
-  // 잡담 모드: 입력창 포함 대화
   function showChatInput(npc, onSend, onExit) {
     const menu = $("#dlg-menu");
     menu.innerHTML = "";
@@ -151,7 +214,7 @@ const UI = (function () {
     input.maxLength = 200;
     input.placeholder = npc.name + "에게 말 걸기…";
     const send = el("button", "dlg-btn primary", "전송");
-    const exit = el("button", "dlg-btn", "그만하기");
+    const exit = el("button", "dlg-btn", "그만");
     send.addEventListener("click", () => {
       const msg = input.value.trim();
       if (msg) {
@@ -174,7 +237,7 @@ const UI = (function () {
   // ---------- 퀘스트 창 ----------
   function showQuest(quest, npc, state, handlers) {
     openModal("quest-modal");
-    $("#q-title").textContent = "📋 " + quest.title;
+    $("#q-title").textContent = (quest.type === "sub" ? "🔖 [서브] " : "📋 [메인] ") + quest.title;
     $("#q-npc").textContent = npc.name + " · " + npc.title;
     $("#q-npc").style.color = npc.color;
     $("#q-briefing").textContent = "“" + quest.briefing + "”";
@@ -187,14 +250,13 @@ const UI = (function () {
     $("#q-form").classList.remove("hidden");
     $("#q-hint-box").classList.add("hidden");
 
-    // 아메리카노(힌트) 버튼
     const coffeeBtn = $("#q-btn-coffee");
     const coffees = state.coffees || 0;
-    coffeeBtn.textContent = "🧋 힌트 보기 (" + coffees + "개)";
+    coffeeBtn.textContent = "🧋 힌트 (" + coffees + ")";
     coffeeBtn.disabled = coffees <= 0;
     coffeeBtn.onclick = () => {
       if (handlers.onCoffee()) {
-        $("#q-hint-box").textContent = "💡 모범 예시: " + quest.example;
+        $("#q-hint-box").textContent = "💡 참고 예시: " + quest.example;
         $("#q-hint-box").classList.remove("hidden");
         coffeeBtn.disabled = true;
       }
@@ -219,7 +281,6 @@ const UI = (function () {
     box.appendChild(el("p", "grading-anim", "✍️ " + npcName + "이(가) 카피를 읽고 있다…"));
   }
 
-  // result: {score, pass, feedback, tip, revised, checks?, reward?, leveledUp, newMedals}
   function showQuestResult(quest, npc, result, handlers) {
     const box = $("#q-result");
     box.classList.remove("hidden");
@@ -243,8 +304,8 @@ const UI = (function () {
     }
     if (result.revised) {
       const rv = el("div", "result-revised");
-      rv.appendChild(el("p", "fb-npc", "✏️ 이렇게 다듬어 보면"));
-      rv.appendChild(el("p", null, result.revised));
+      rv.appendChild(el("p", "fb-npc", "🖋️ 프로는 이렇게 씁니다"));
+      rv.appendChild(el("p", "revised-copy", "“" + result.revised + "”"));
       box.appendChild(rv);
     }
     if (result.tip) box.appendChild(el("p", "result-tip", "💡 " + result.tip));
@@ -332,9 +393,16 @@ const UI = (function () {
     $("#btn-settings-close").onclick = () => closeModals();
   }
 
+  // ---------- 도움말 ----------
+  function showHelp() {
+    openModal("help-modal");
+    $("#btn-help-close").onclick = () => closeModals();
+  }
+
   // ---------- 메달 ----------
   function showMedals(state) {
     openModal("medals-modal");
+    $("#medal-count").textContent = state.medals.length + " / " + ACHIEVEMENTS.length;
     const grid = $("#medal-grid");
     grid.innerHTML = "";
     ACHIEVEMENTS.forEach((a) => {
@@ -349,8 +417,10 @@ const UI = (function () {
   }
 
   return {
-    isModalOpen, closeModals, toast, runIntro, updateHUD,
+    isModalOpen, closeModals, toast,
+    showTitle, backToTitle, runIntro, playStory,
+    updateHUD, updateObjective,
     showDialogue, showChatInput, showQuest, showGrading, showQuestResult,
-    showShop, showSettings, showMedals,
+    showShop, showSettings, showHelp, showMedals,
   };
 })();

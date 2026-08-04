@@ -54,6 +54,9 @@ const CHAR_PRESETS = {
   host: { body: BODY_SHORT, hair: "#5a4a3a", skin: "#e8b890", cloth: "#7c8ce0", cloth2: "#6272c4", pants: "#3a4a5a", hat: "none" },
   cook: { body: BODY_SHORT, hair: "#b8b8b8", skin: "#e8b088", cloth: "#a0c25c", cloth2: "#86a648", pants: "#5a5a4a", hat: "toque", hatColor: "#f0ead8" },
   director: { body: BODY_LONG, hair: "#2a2a2a", skin: "#f0c8a0", cloth: "#c25c5c", cloth2: "#a44848", pants: "#2a2a34", hat: "none", glasses: true },
+  flower: { body: BODY_LONG, hair: "#6a4a5a", skin: "#f5d0aa", cloth: "#e88ab0", cloth2: "#cc6f96", pants: "#5a4a52", hat: "none" },
+  fish: { body: BODY_SHORT, hair: "#3a2a1a", skin: "#e8b890", cloth: "#f0b03c", cloth2: "#d09428", pants: "#4a4a52", hat: "cap", hatColor: "#f0b03c" },
+  corp: { body: BODY_SHORT, hair: "#4a4a54", skin: "#f0c8a0", cloth: "#8a8a9a", cloth2: "#6e6e7e", pants: "#2a2a34", hat: "none", glasses: true },
 };
 
 // 캐릭터를 (px, py) 픽셀 위치에 그린다. bob=걷기 애니메이션 오프셋
@@ -106,7 +109,71 @@ function drawTile(ctx, code, tx, ty, time) {
   const px = tx * TILE;
   const py = ty * TILE;
 
-  // 바닥 (모든 타일의 기본)
+  // ---- 실내 타일 (자체 배경, 잔디 없음) ----
+  if (code === " ") {
+    ctx.fillStyle = "#0d0a12";
+    ctx.fillRect(px, py, TILE, TILE);
+    return;
+  }
+  if ("xfokpg".includes(code) || (code === "E" && currentMapId === "office")) {
+    // 마루 바닥 공통
+    ctx.fillStyle = "#c9a06a";
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = "#b8905c";
+    ctx.fillRect(px, py + 15, TILE, 2);
+    ctx.fillRect(px + (ty % 2 ? 8 : 20), py, 2, TILE);
+    switch (code) {
+      case "x": // 실내 벽
+        ctx.fillStyle = "#5a4a5e";
+        ctx.fillRect(px, py, TILE, TILE);
+        ctx.fillStyle = "#6a5a6e";
+        ctx.fillRect(px, py, TILE, 8);
+        break;
+      case "o": // 러그
+        ctx.fillStyle = "#a34a4a";
+        ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
+        ctx.fillStyle = "#c26a5a";
+        ctx.fillRect(px + 6, py + 6, TILE - 12, TILE - 12);
+        break;
+      case "k": // 책상
+        ctx.fillStyle = "#7a5a3a";
+        ctx.fillRect(px + 1, py + 6, TILE - 2, TILE - 12);
+        ctx.fillStyle = "#8a6a48";
+        ctx.fillRect(px + 1, py + 6, TILE - 2, 6);
+        ctx.fillStyle = "#dde8f0"; // 서류
+        ctx.fillRect(px + 6, py + 10, 8, 6);
+        break;
+      case "p": // 화분
+        ctx.fillStyle = "#8a5a3a";
+        ctx.fillRect(px + 10, py + 18, 12, 10);
+        ctx.fillStyle = "#4e8e4a";
+        ctx.beginPath();
+        ctx.arc(px + 16, py + 12, 8, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      case "g": // 책장
+        ctx.fillStyle = "#6a4a32";
+        ctx.fillRect(px, py, TILE, TILE);
+        const bookColors = ["#c25c5c", "#5c8ac2", "#c2a05c", "#5cb8a7"];
+        for (let row = 0; row < 2; row++) {
+          for (let i = 0; i < 4; i++) {
+            ctx.fillStyle = bookColors[(i + row + tx) % 4];
+            ctx.fillRect(px + 3 + i * 7, py + 4 + row * 14, 5, 10);
+          }
+        }
+        break;
+      case "E": // 출구 매트
+        ctx.fillStyle = "#8a3a3a";
+        ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
+        ctx.fillStyle = "#f0d060";
+        ctx.font = "bold 14px sans-serif";
+        ctx.fillText("▼", px + 10, py + 21);
+        break;
+    }
+    return;
+  }
+
+  // ---- 실외 타일 ----
   ctx.fillStyle = "#7fb069";
   ctx.fillRect(px, py, TILE, TILE);
   for (let i = 0; i < 4; i++) {
@@ -191,6 +258,45 @@ function drawTile(ctx, code, tx, ty, time) {
       ctx.fillRect(px + 7, py + 7, TILE - 14, TILE - 10);
       ctx.fillStyle = "#f0d060";
       ctx.fillRect(px + TILE - 11, py + 17, 3, 3);
+      break;
+    }
+    case "E": { // 실외 출입구 (빛나는 문)
+      ctx.fillStyle = "#b0705a";
+      ctx.fillRect(px, py, TILE, TILE);
+      const glow = Math.sin(time / 400) > 0 ? "#f0d060" : "#d8b850";
+      ctx.fillStyle = "#6a4a32";
+      ctx.fillRect(px + 4, py + 4, TILE - 8, TILE - 4);
+      ctx.strokeStyle = glow;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px + 4, py + 4, TILE - 8, TILE - 5);
+      ctx.fillStyle = glow;
+      ctx.fillRect(px + TILE - 12, py + 17, 3, 3);
+      break;
+    }
+    case "S": { // 무대
+      ctx.fillStyle = "#9a6a42";
+      ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = "#b07e50";
+      ctx.fillRect(px, py, TILE, 5);
+      ctx.fillStyle = "#7e5636";
+      for (let i = 0; i < 3; i++) ctx.fillRect(px, py + 9 + i * 8, TILE, 2);
+      break;
+    }
+    case "M": { // 공사 펜스
+      ctx.fillStyle = "#c8c8d0";
+      ctx.fillRect(px, py + 4, TILE, TILE - 8);
+      ctx.fillStyle = "#e8b83c";
+      ctx.fillRect(px, py + 8, TILE, 8);
+      ctx.fillStyle = "#3a3a44";
+      ctx.beginPath();
+      ctx.moveTo(px + 4, py + 16);
+      ctx.lineTo(px + 12, py + 8);
+      ctx.lineTo(px + 18, py + 8);
+      ctx.lineTo(px + 10, py + 16);
+      ctx.fill();
+      ctx.fillStyle = "#8a8a94";
+      ctx.fillRect(px + 2, py + 4, 3, TILE - 8);
+      ctx.fillRect(px + TILE - 5, py + 4, 3, TILE - 8);
       break;
     }
     case "b": { // 벤치

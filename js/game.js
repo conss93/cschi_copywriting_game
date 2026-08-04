@@ -1,28 +1,34 @@
 // ============================================================
-// 게임 엔진: 상태, 입력, 이동, 렌더링, 상호작용
+// 게임 엔진: 상태, 스토리 진행, 입력, 이동, 맵 전환, 렌더링
 // ============================================================
 
 (function () {
   "use strict";
 
-  const SAVE_KEY = "copyquest_save_v2";
+  const SAVE_KEY = "copyquest_save_v3";
 
   // ---------- 상태 ----------
   const defaultState = () => ({
     name: "",
     charPreset: "playerA",
-    outfit: null, // 착용 중인 outfit 아이템 id
+    outfit: null,
     xp: 0,
     level: 1,
     points: 500,
     totalEarned: 0,
     bestScore: 0,
     completed: {}, // questId -> { score, attempts }
-    attempts: {}, // questId -> 시도 횟수 (미완료 포함)
+    attempts: {},
     inventory: [],
     coffees: 0,
+    coffeesBought: 0,
+    chatCount: 0,
     medals: [],
-    px: 12, // 타일 좌표
+    flags: {}, // 스토리 플래그 (tutorialDone, marketOpen, ending …)
+    storyDone: [], // 재생 완료된 스토리 이벤트 id
+    objective: "",
+    map: "town",
+    px: 12,
     py: 9,
   });
 
@@ -33,10 +39,13 @@
       const raw = localStorage.getItem(SAVE_KEY);
       if (raw) return Object.assign(defaultState(), JSON.parse(raw));
     } catch (e) { /* 손상된 저장은 무시 */ }
-    return defaultState();
+    return null;
   }
   function save() {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  }
+  function hasSave() {
+    return !!localStorage.getItem(SAVE_KEY);
   }
 
   function xpMultiplier() {
@@ -54,31 +63,73 @@
     return up;
   }
 
-  function checkMedals() {
+  function checkMedals(silent) {
     const earned = [];
     ACHIEVEMENTS.forEach((a) => {
       if (!state.medals.includes(a.id) && a.cond(state)) {
         state.medals.push(a.id);
         earned.push(a);
+        if (!silent) UI.toast(a.icon + " 메달 획득: " + a.name, true);
       }
     });
     return earned;
   }
 
+  // ---------- 스토리 엔진 ----------
+  let storyPlaying = false;
+
+  function fireStory(trigger) {
+    if (storyPlaying) return false;
+    const event = STORY.find((ev) => {
+      if (state.storyDone.includes(ev.id)) return false;
+      const t = ev.trigger;
+      if (t.type !== trigger.type) return false;
+      if (t.type === "enter") return t.map === trigger.map;
+      if (t.type === "questDone") return t.quest === trigger.quest;
+      return t.type === "start";
+    });
+    if (!event) return false;
+
+    storyPlaying = true;
+    state.storyDone.push(event.id);
+    UI.playStory(event.lines, () => {
+      storyPlaying = false;
+      if (event.flags) Object.assign(state.flags, event.flags);
+      if (event.objective) state.objective = event.objective;
+      UI.updateObjective(state.objective);
+      checkMedals();
+      save();
+      UI.updateHUD(state);
+    });
+    return true;
+  }
+
   // ---------- 퀘스트 진행 ----------
-  function nextQuestIndex() {
-    return QUESTS.findIndex((q) => !state.completed[q.id]);
+  const MAIN_QUESTS = QUESTS.filter((q) => q.type === "main");
+
+  function nextMainQuest() {
+    return MAIN_QUESTS.find((q) => !state.completed[q.id]) || null;
   }
-  // NPC에게 지금 받을 수 있는 퀘스트 (선형 진행)
-  function availableQuestFor(npc) {
-    const idx = nextQuestIndex();
-    if (idx === -1) return null;
-    return QUESTS[idx].npcId === npc.id ? QUESTS[idx] : null;
+
+  function subQuestAvailable(q) {
+    if (q.type !== "sub" || state.completed[q.id]) return false;
+    const req = q.requires;
+    return !req || !!state.flags[req] || !!state.completed[req];
   }
-  // 이 NPC의 다음 퀘스트가 아직 잠겨 있는지 (다른 NPC 먼저)
-  function pendingQuestOwner() {
-    const idx = nextQuestIndex();
-    return idx === -1 ? null : NPCS.find((n) => n.id === QUESTS[idx].npcId);
+
+  function availableQuestsFor(npc) {
+    const list = [];
+    const main = nextMainQuest();
+    // 메인 퀘스트는 튜토리얼(오팀장 면접) 이후부터
+    if (main && main.npcId === npc.id && state.flags.tutorialDone) list.push(main);
+    QUESTS.forEach((q) => {
+      if (q.npcId === npc.id && subQuestAvailable(q)) list.push(q);
+    });
+    return list;
+  }
+
+  function anyQuestAvailable(npc) {
+    return availableQuestsFor(npc).length > 0;
   }
 
   // ---------- 채점 ----------
@@ -124,21 +175,24 @@
       state.points += quest.reward.points;
       state.totalEarned += quest.reward.points;
       leveledUp = addXp(quest.reward.xp);
-      newMedals = checkMedals();
-      result.reward = quest.reward;
+      newMedals = checkMedals(true);
     }
+    result.reward = result.pass && state.completed[quest.id] && state.completed[quest.id].attempts === state.attempts[quest.id] ? quest.reward : null;
     result.leveledUp = leveledUp;
     result.newMedals = newMedals;
     save();
     UI.updateHUD(state);
     UI.showQuestResult(quest, npc, result, {
       onClose: () => {
-        const idx = nextQuestIndex();
-        if (result.pass && idx !== -1) {
-          const owner = NPCS.find((n) => n.id === QUESTS[idx].npcId);
-          UI.toast("다음 의뢰: " + owner.name + " (" + owner.title + ")를 찾아가자!", true);
-        } else if (result.pass && idx === -1) {
-          UI.toast("🎉 모든 의뢰 완료! 당신은 이제 글빨골목의 카피라이터다!", true);
+        if (result.pass) {
+          // 퀘스트 완료 스토리 재생 (목표 갱신 포함)
+          if (!fireStory({ type: "questDone", quest: quest.id })) {
+            const main = nextMainQuest();
+            if (main) {
+              const owner = NPCS.find((n) => n.id === main.npcId);
+              UI.toast("다음 의뢰: " + owner.name + " (" + MAPS[owner.map].name + ")", true);
+            }
+          }
         }
       },
     });
@@ -146,12 +200,13 @@
 
   // ---------- NPC 상호작용 ----------
   function talkTo(npc) {
-    const quest = availableQuestFor(npc);
+    const quests = availableQuestsFor(npc);
     const options = [];
 
-    if (quest) {
+    quests.forEach((quest) => {
       options.push({
-        label: "📋 의뢰 보기",
+        label: (quest.type === "sub" ? "🔖 " : "📋 ") + quest.title,
+        primary: quest.type === "main",
         onClick: () => {
           UI.showQuest(quest, npc, state, {
             onCoffee: () => {
@@ -166,27 +221,34 @@
           });
         },
       });
-    }
-    options.push({
-      label: "💬 잡담하기" + (AI.hasKey() ? "" : " (기본 대사)"),
-      onClick: () => startChat(npc),
     });
+    options.push({ label: "💬 잡담" + (AI.hasKey() ? "" : " (기본)"), onClick: () => startChat(npc) });
     options.push({ label: "👋 떠나기", onClick: () => UI.closeModals() });
 
     let greeting;
-    if (quest) {
-      greeting = "마침 잘 왔어. 부탁할 일이 있는데… (의뢰: " + quest.title + ")";
+    if (quests.length > 0) {
+      greeting = quests.length === 1
+        ? "마침 잘 왔어. 부탁할 일이 있는데… (" + quests[0].title + ")"
+        : "부탁할 일이 " + quests.length + "개나 있어. 뭐부터 볼래?";
     } else {
-      const owner = pendingQuestOwner();
-      if (owner && owner.id !== npc.id) greeting = "지금은 부탁할 게 없네. " + owner.name + "이(가) 사람을 찾던데?";
-      else if (!owner) greeting = "덕분에 골목이 살아났어. 고마워!";
-      else greeting = "어서 와!";
+      const main = nextMainQuest();
+      if (main && state.flags.tutorialDone) {
+        const owner = NPCS.find((n) => n.id === main.npcId);
+        greeting = owner.id === npc.id ? "어서 와!" : "지금은 부탁할 게 없네. " + owner.name + "이(가) 사람을 찾던데?";
+      } else if (!main) {
+        greeting = "골목을 지켜줘서 고마워. 덕분에 오늘도 영업 중이야!";
+      } else {
+        greeting = "처음 보는 얼굴이네. 골목기획 오팀장부터 만나보는 게 어때?";
+      }
     }
     UI.showDialogue(npc, greeting, options);
   }
 
   // ---------- 잡담 (AI) ----------
   function startChat(npc) {
+    state.chatCount = (state.chatCount || 0) + 1;
+    checkMedals();
+    save();
     const history = [];
     if (!AI.hasKey()) {
       const line = npc.fallbackChat[Math.floor(Math.random() * npc.fallbackChat.length)];
@@ -222,7 +284,7 @@
   // ---------- 상점 ----------
   function openShop() {
     UI.showDialogue(null, "🏪 편의점 카피24에 어서오세요~ 포인트로 결제 가능합니다.", [
-      { label: "🛍️ 물건 보기", onClick: () => UI.showShop(state, buyItem) },
+      { label: "🛍️ 물건 보기", primary: true, onClick: () => UI.showShop(state, buyItem) },
       { label: "👋 나가기", onClick: () => UI.closeModals() },
     ]);
   }
@@ -244,12 +306,12 @@
     state.points -= item.price;
     if (item.type === "consumable") {
       state.coffees = (state.coffees || 0) + 1;
+      state.coffeesBought = (state.coffeesBought || 0) + 1;
     } else {
       state.inventory.push(item.id);
       if (item.type === "outfit") state.outfit = item.id;
     }
-    const newMedals = checkMedals();
-    newMedals.forEach((m) => UI.toast(m.icon + " 메달 획득: " + m.name, true));
+    checkMedals();
     save();
     UI.updateHUD(state);
     UI.showShop(state, buyItem);
@@ -262,11 +324,27 @@
     return item ? item.palette : null;
   }
 
+  // ---------- 맵 전환 ----------
+  function changeMap(mapId, tx, ty) {
+    setCurrentMap(mapId);
+    state.map = mapId;
+    player.x = player.fromX = tx;
+    player.y = player.fromY = ty;
+    player.progress = 1;
+    player.moving = false;
+    state.px = tx;
+    state.py = ty;
+    save();
+    UI.updateHUD(state);
+    UI.toast("📍 " + MAPS[mapId].name);
+    fireStory({ type: "enter", map: mapId });
+  }
+
   // ---------- 입력 ----------
   const keys = {};
   document.addEventListener("keydown", (e) => {
     if (UI.isModalOpen()) {
-      if (e.key === "Escape") UI.closeModals();
+      if (e.key === "Escape" && !storyPlaying) UI.closeModals();
       return;
     }
     keys[e.key] = true;
@@ -275,7 +353,6 @@
       interact();
       return;
     }
-    // 짧은 탭도 놓치지 않도록 keydown에서 즉시 한 칸 이동
     const dir = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] }[e.key];
     if (dir) {
       e.preventDefault();
@@ -284,25 +361,31 @@
   });
   document.addEventListener("keyup", (e) => (keys[e.key] = false));
 
-  // 모바일 터치 컨트롤
   function bindTouch(id, key) {
     const btn = document.getElementById(id);
     if (!btn) return;
-    const on = (e) => { e.preventDefault(); keys[key] = true; };
+    const on = (e) => { e.preventDefault(); keys[key] = true; if (!UI.isModalOpen() && !player.moving) { const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[key]; if (d) tryMove(d[0], d[1]); } };
     const off = (e) => { e.preventDefault(); keys[key] = false; };
-    btn.addEventListener("touchstart", on);
-    btn.addEventListener("touchend", off);
+    btn.addEventListener("touchstart", on, { passive: false });
+    btn.addEventListener("touchend", off, { passive: false });
     btn.addEventListener("mousedown", on);
     btn.addEventListener("mouseup", off);
+    btn.addEventListener("mouseleave", off);
   }
 
   // ---------- 이동 ----------
-  const player = { x: 12, y: 9, moving: false, fromX: 12, fromY: 9, progress: 1, face: "down" };
+  const player = { x: 12, y: 9, moving: false, fromX: 12, fromY: 9, progress: 1 };
 
   function tryMove(dx, dy) {
-    if (player.moving) return;
+    if (player.moving || UI.isModalOpen()) return;
     const nx = player.x + dx;
     const ny = player.y + dy;
+    // 잠긴 출입구 체크
+    const warp = warpAt(nx, ny);
+    if (warp && warp.requires && !state.flags[warp.requires]) {
+      UI.toast(warp.lockMsg || "아직 갈 수 없다.");
+      return;
+    }
     if (isSolid(nx, ny)) return;
     player.fromX = player.x;
     player.fromY = player.y;
@@ -313,14 +396,13 @@
   }
 
   function facingTile() {
-    // 상하좌우 인접 칸 중 NPC/문이 있는 곳을 찾는다
     const dirs = [ [0, -1], [0, 1], [-1, 0], [1, 0] ];
     for (const [dx, dy] of dirs) {
       const tx = player.x + dx;
       const ty = player.y + dy;
-      const npc = NPCS.find((n) => n.x === tx && n.y === ty);
+      const npc = npcsHere().find((n) => n.x === tx && n.y === ty);
       if (npc) return { npc };
-      if (tx === SHOP_DOOR.x && ty === SHOP_DOOR.y) return { shop: true };
+      if (SHOP_DOOR.map === state.map && tx === SHOP_DOOR.x && ty === SHOP_DOOR.y) return { shop: true };
     }
     return null;
   }
@@ -340,12 +422,18 @@
 
   function update(dt) {
     if (player.moving) {
-      player.progress += dt / 160; // 한 칸 이동에 160ms
+      player.progress += dt / 160;
       if (player.progress >= 1) {
         player.progress = 1;
         player.moving = false;
         state.px = player.x;
         state.py = player.y;
+        // 출입구 도착 → 맵 전환
+        const warp = warpAt(player.x, player.y);
+        if (warp && (!warp.requires || state.flags[warp.requires])) {
+          changeMap(warp.to, warp.tx, warp.ty);
+          return;
+        }
         save();
       }
     } else if (!UI.isModalOpen()) {
@@ -357,19 +445,16 @@
   }
 
   function render(time) {
-    // 맵
     for (let y = 0; y < MAP_H; y++) {
       for (let x = 0; x < MAP_W; x++) {
         drawTile(ctx, tileAt(x, y), x, y, time);
       }
     }
-    SIGNS.forEach(([c, r, t]) => drawSign(ctx, c, r, t));
+    currentMap().signs.forEach(([c, r, t]) => drawSign(ctx, c, r, t));
 
-    // NPC
-    NPCS.forEach((npc) => {
+    npcsHere().forEach((npc) => {
       const bob = Math.sin(time / 500 + npc.x) > 0.7 ? -1 : 0;
       drawCharacter(ctx, npc.sprite, npc.x * TILE, npc.y * TILE, bob, null);
-      // 이름표
       ctx.font = "10px 'Malgun Gothic', sans-serif";
       const label = npc.name;
       const lw = ctx.measureText(label).width + 8;
@@ -378,8 +463,7 @@
       ctx.fillRect(lx, npc.y * TILE - 12, lw, 12);
       ctx.fillStyle = "#fff";
       ctx.fillText(label, lx + 4, npc.y * TILE - 3);
-      // 의뢰 가능 표시
-      if (availableQuestFor(npc)) {
+      if (anyQuestAvailable(npc)) {
         ctx.font = "bold 14px sans-serif";
         ctx.fillStyle = "#f0d060";
         const blink = Math.sin(time / 300) > 0 ? "❗" : "❕";
@@ -387,13 +471,11 @@
       }
     });
 
-    // 플레이어 (칸 사이 보간)
     const ix = (player.fromX + (player.x - player.fromX) * player.progress) * TILE;
     const iy = (player.fromY + (player.y - player.fromY) * player.progress) * TILE;
     const bob = player.moving && Math.floor(time / 120) % 2 === 0 ? -2 : 0;
     drawCharacter(ctx, state.charPreset, ix, iy, bob, outfitPalette());
 
-    // 상호작용 안내
     const target = facingTile();
     if (target && !UI.isModalOpen()) {
       ctx.font = "bold 12px 'Malgun Gothic', sans-serif";
@@ -415,19 +497,18 @@
   }
 
   // ---------- 시작 ----------
-  function startGame() {
+  function startGame(isNew) {
     document.getElementById("game-wrap").classList.remove("hidden");
+    setCurrentMap(state.map);
     player.x = player.fromX = state.px;
     player.y = player.fromY = state.py;
     UI.updateHUD(state);
+    UI.updateObjective(state.objective);
 
     document.getElementById("btn-medals").addEventListener("click", () => UI.showMedals(state));
     document.getElementById("btn-settings").addEventListener("click", () => UI.showSettings());
-    document.getElementById("btn-reset").addEventListener("click", () => {
-      if (confirm("정말 처음부터 다시 시작할까요? 모든 진행이 사라집니다.")) {
-        localStorage.removeItem(SAVE_KEY);
-        location.reload();
-      }
+    document.getElementById("btn-title-back").addEventListener("click", () => {
+      if (confirm("타이틀로 돌아갈까요? (진행은 저장되어 있어요)")) UI.backToTitle();
     });
 
     bindTouch("pad-up", "ArrowUp");
@@ -436,28 +517,36 @@
     bindTouch("pad-right", "ArrowRight");
     const actBtn = document.getElementById("pad-action");
     if (actBtn) {
-      actBtn.addEventListener("touchstart", (e) => { e.preventDefault(); interact(); });
-      actBtn.addEventListener("mousedown", (e) => { e.preventDefault(); interact(); });
+      actBtn.addEventListener("touchstart", (e) => { e.preventDefault(); if (!UI.isModalOpen()) interact(); }, { passive: false });
+      actBtn.addEventListener("mousedown", (e) => { e.preventDefault(); if (!UI.isModalOpen()) interact(); });
     }
 
     requestAnimationFrame(loop);
 
+    if (isNew) {
+      setTimeout(() => fireStory({ type: "start" }), 400);
+    }
     if (!AI.hasKey()) {
-      setTimeout(() => UI.toast("⚙️ 설정에서 Claude API 키를 넣으면 NPC가 AI로 첨삭해줘요!", true), 1500);
+      setTimeout(() => UI.toast("⚙️ 설정에서 Claude API 키를 넣으면 NPC가 AI로 첨삭해줘요!", true), isNew ? 8000 : 1500);
     }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    if (state.name) {
-      startGame();
-    } else {
-      UI.runIntro((name, preset) => {
-        state.name = name;
-        state.charPreset = preset;
-        save();
-        startGame();
-        UI.toast("❗ 표시가 있는 사람에게 다가가 SPACE를 눌러보세요!", true);
-      });
-    }
+    UI.showTitle(hasSave() && state && state.name, {
+      onNew: () => {
+        localStorage.removeItem(SAVE_KEY);
+        state = defaultState();
+        UI.runIntro((name, preset) => {
+          state.name = name;
+          state.charPreset = preset;
+          save();
+          startGame(true);
+        });
+      },
+      onContinue: () => {
+        if (!state) state = defaultState();
+        startGame(false);
+      },
+    });
   });
 })();
