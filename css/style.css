@@ -1,316 +1,340 @@
-/* 카피퀘스트: 잉크의 대륙 — 기본 스타일 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* 카피퀘스트: 글빨골목 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #1a1625;
-  --panel: #262033;
-  --panel-light: #322a44;
-  --ink: #e8e2f4;
-  --ink-dim: #a99cc4;
-  --gold: #f0b429;
+  --bg: #1a1420;
+  --panel: #2a2233;
+  --panel-2: #382e44;
+  --ink: #ece6f4;
+  --dim: #a698bc;
+  --gold: #f0d060;
   --accent: #8b5cf6;
-  --accent-dark: #6d3fd4;
-  --pass: #4ade80;
-  --fail: #f87171;
+  --green: #4ade80;
+  --red: #f87171;
 }
 
 body {
   font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   background: var(--bg);
   color: var(--ink);
-  line-height: 1.65;
   min-height: 100vh;
-}
-
-.container {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 24px 16px 64px;
-}
-
-.screen {
-  display: none;
-}
-.screen.active {
-  display: block;
-  animation: fadein 0.35s ease;
-}
-@keyframes fadein {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.6;
 }
 
 .hidden { display: none !important; }
 
 /* ---------- 인트로 ---------- */
-.intro-box {
-  background: var(--panel);
-  border: 1px solid var(--panel-light);
-  border-radius: 16px;
-  padding: 32px 24px;
-  text-align: center;
-  margin-top: 48px;
-}
-.intro-box h1 {
-  font-size: 1.8rem;
-  color: var(--gold);
-  margin-bottom: 4px;
-}
-.intro-box .subtitle {
-  color: var(--ink-dim);
-  margin-bottom: 24px;
-}
-.lore {
-  text-align: left;
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  color: var(--ink-dim);
-  font-size: 0.95rem;
-}
-.lore strong { color: var(--gold); }
-
-input[type="text"] {
-  width: 100%;
-  max-width: 320px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--panel-light);
-  background: var(--bg);
-  color: var(--ink);
-  font-size: 1rem;
-  margin-bottom: 16px;
-}
-input[type="text"]:focus {
-  outline: 2px solid var(--accent);
-}
-
-/* ---------- 버튼 ---------- */
-.btn {
-  display: inline-block;
-  padding: 12px 28px;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s ease, filter 0.15s ease;
-}
-.btn:active { transform: scale(0.97); }
-.btn.primary {
-  background: var(--accent);
-  color: #fff;
-}
-.btn.primary:hover { filter: brightness(1.15); }
-.btn.secondary {
-  background: var(--panel-light);
-  color: var(--ink);
-}
-.btn.small {
-  padding: 6px 14px;
-  font-size: 0.85rem;
-}
-.btn-row {
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 50;
   display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  flex-wrap: wrap;
-}
-
-/* ---------- 허브(마을) ---------- */
-.player-panel {
-  background: var(--panel);
-  border: 1px solid var(--panel-light);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 24px;
-}
-.player-row {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-#player-name { font-size: 1.25rem; font-weight: 800; }
-#player-level { color: var(--gold); font-weight: 700; }
-#player-xp { color: var(--ink-dim); font-size: 0.9rem; margin-left: auto; }
-.xp-bar {
-  height: 10px;
-  background: var(--bg);
-  border-radius: 5px;
-  overflow: hidden;
-  margin-top: 10px;
-}
-#xp-fill {
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, var(--accent-dark), var(--accent));
-  transition: width 0.5s ease;
-}
-
-.section-title {
-  font-size: 1.1rem;
-  margin: 28px 0 12px;
-  color: var(--gold);
-}
-.chapter-title {
-  font-size: 0.95rem;
-  color: var(--ink-dim);
-  margin: 20px 0 8px;
-  border-bottom: 1px dashed var(--panel-light);
-  padding-bottom: 4px;
-}
-
-.quest-card {
-  background: var(--panel);
-  border: 1px solid var(--panel-light);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: border-color 0.15s ease, transform 0.1s ease;
-}
-.quest-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-.quest-card.locked {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.quest-card.locked:hover { border-color: var(--panel-light); transform: none; }
-.quest-card-head {
-  display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
-}
-.quest-title { font-weight: 700; }
-.quest-xp { margin-left: auto; color: var(--gold); font-size: 0.85rem; }
-.quest-client { color: var(--ink-dim); font-size: 0.85rem; margin-top: 4px; }
-.quest-best { color: var(--pass); font-size: 0.85rem; margin-top: 4px; }
-
-/* ---------- 메달 ---------- */
-.medal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-}
-.medal {
-  background: var(--panel);
-  border: 1px solid var(--panel-light);
-  border-radius: 12px;
-  padding: 14px 10px;
-  text-align: center;
-  opacity: 0.4;
-}
-.medal.earned {
-  opacity: 1;
-  border-color: var(--gold);
-}
-.medal-icon { font-size: 1.8rem; }
-.medal-name { font-weight: 700; font-size: 0.9rem; margin-top: 6px; }
-.medal-desc { color: var(--ink-dim); font-size: 0.75rem; margin-top: 4px; }
-
-/* ---------- 퀘스트 화면 ---------- */
-.quest-panel {
-  background: var(--panel);
-  border: 1px solid var(--panel-light);
-  border-radius: 16px;
   padding: 24px;
+  cursor: pointer;
 }
-.quest-panel h2 { color: var(--gold); margin-bottom: 4px; }
-#q-client { color: var(--ink-dim); font-size: 0.9rem; margin-bottom: 16px; }
-#q-briefing {
+#intro-text {
+  max-width: 560px;
+  font-size: 1.1rem;
+  line-height: 2.1;
+  color: #ddd;
+}
+#intro-text p { min-height: 1em; }
+#intro-hint {
+  position: absolute;
+  bottom: 32px;
+  color: #777;
+  font-size: 0.85rem;
+  animation: pulse 1.6s infinite;
+}
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+/* ---------- 모달 공통 ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+.modal-box {
+  background: var(--panel);
+  border: 2px solid var(--panel-2);
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.modal-box.wide { max-width: 560px; }
+.modal-box h2 { color: var(--gold); margin-bottom: 6px; font-size: 1.2rem; }
+.modal-sub { color: var(--dim); font-size: 0.88rem; margin-bottom: 14px; }
+
+input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--panel-2);
   background: var(--bg);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 10px 10px 0;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  font-size: 0.95rem;
+  color: var(--ink);
+  font-size: 1rem;
+  margin-bottom: 12px;
 }
-.mission-label {
-  font-weight: 800;
-  color: var(--gold);
-  margin-bottom: 6px;
-}
-#q-mission { margin-bottom: 16px; }
+input:focus, textarea:focus { outline: 2px solid var(--accent); }
 
 textarea {
   width: 100%;
-  min-height: 110px;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--panel-light);
+  min-height: 96px;
+  padding: 12px;
+  border-radius: 9px;
+  border: 1px solid var(--panel-2);
   background: var(--bg);
   color: var(--ink);
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-family: inherit;
   resize: vertical;
 }
-textarea:focus { outline: 2px solid var(--accent); }
-.char-row {
-  text-align: right;
-  color: var(--ink-dim);
-  font-size: 0.85rem;
-  margin: 6px 0 14px;
-}
 
-/* ---------- 결과 ---------- */
-#q-result {
-  margin-top: 24px;
-  background: var(--panel-light);
-  border-radius: 12px;
-  padding: 20px;
-}
-#q-result .score {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--gold);
-  margin: 8px 0;
-}
-#q-result .levelup {
-  color: var(--pass);
-  font-weight: 700;
-}
-.check-list { list-style: none; margin: 12px 0; }
-.check-list li { padding: 3px 0; }
-.check-list li.pass { color: var(--pass); }
-.check-list li.fail { color: var(--fail); }
-.self-check-list {
-  list-style: none;
-  color: var(--ink-dim);
-  font-size: 0.9rem;
-  margin: 8px 0 16px;
-}
-.lesson-box {
-  background: var(--bg);
-  border-radius: 10px;
-  padding: 14px 16px;
-  margin: 12px 0;
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 9px;
   font-size: 0.95rem;
-}
-.lesson-box .example {
-  margin-top: 8px;
-  color: var(--gold);
-  font-style: italic;
-}
-.new-medal {
-  color: var(--gold);
   font-weight: 700;
-  margin-top: 10px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
 }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.15); }
+.btn.secondary { background: var(--panel-2); color: var(--ink); }
+.btn.ghost { background: transparent; color: var(--dim); }
+.btn.small { padding: 6px 12px; font-size: 0.82rem; }
+.btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 
-.top-bar {
+/* ---------- 캐릭터 선택 ---------- */
+.char-row { display: flex; gap: 14px; justify-content: center; margin: 14px 0 18px; }
+.char-card {
+  background: var(--bg);
+  border: 2px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 12px 20px;
+  text-align: center;
+  cursor: pointer;
+}
+.char-card.selected { border-color: var(--gold); box-shadow: 0 0 12px rgba(240, 208, 96, 0.3); }
+.char-card canvas { image-rendering: pixelated; }
+.char-card p { color: var(--dim); font-size: 0.85rem; margin-top: 6px; }
+
+/* ---------- HUD ---------- */
+#game-wrap { width: 100%; max-width: 800px; padding: 10px; }
+#hud {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  background: var(--panel);
+  border-radius: 10px 10px 0 0;
+  padding: 8px 14px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
-.footer-note {
+.hud-left { display: flex; align-items: center; gap: 10px; }
+#hud-name { font-weight: 800; }
+#hud-level { color: var(--gold); font-weight: 700; font-size: 0.9rem; }
+.hud-xp { width: 90px; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+#hud-xp-fill { height: 100%; background: linear-gradient(90deg, #6d3fd4, var(--accent)); transition: width 0.4s; }
+.hud-right { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; }
+#hud-points { color: var(--gold); font-weight: 800; }
+#hud-ai { color: var(--dim); font-size: 0.78rem; }
+.hud-btn {
+  background: var(--panel-2);
+  border: none;
+  border-radius: 7px;
+  padding: 4px 9px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+/* ---------- 캔버스 ---------- */
+#canvas-holder { position: relative; }
+#game-canvas {
+  width: 100%;
+  display: block;
+  image-rendering: pixelated;
+  border-radius: 0 0 10px 10px;
+  background: #7fb069;
+}
+
+/* ---------- 대화창 ---------- */
+#dialogue {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: 4%;
+  background: rgba(20, 14, 26, 0.94);
+  border: 2px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 14px 18px;
+  z-index: 10;
+}
+#dlg-name { font-weight: 800; font-size: 0.92rem; margin-bottom: 4px; }
+#dlg-text { font-size: 0.98rem; white-space: pre-wrap; margin-bottom: 10px; }
+#dlg-menu { display: flex; gap: 8px; flex-wrap: wrap; }
+.dlg-btn {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.dlg-btn:hover { background: var(--accent); }
+.dlg-btn.primary { background: var(--accent); color: #fff; }
+.chat-input-row { display: flex; gap: 8px; width: 100%; }
+.chat-input-row input { flex: 1; margin: 0; padding: 9px 12px; }
+
+/* ---------- 퀘스트 ---------- */
+.briefing {
+  background: var(--bg);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 9px 9px 0;
+  padding: 12px 14px;
+  font-size: 0.93rem;
+  margin-bottom: 12px;
+}
+.mission-label { color: var(--gold); font-weight: 800; font-size: 0.9rem; }
+#q-mission { margin-bottom: 12px; font-size: 0.95rem; }
+.hint-box {
+  background: rgba(240, 208, 96, 0.1);
+  border: 1px dashed var(--gold);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.count-row { text-align: right; color: var(--dim); font-size: 0.82rem; margin-top: 4px; }
+
+.grading-anim { text-align: center; padding: 30px 0; color: var(--dim); animation: pulse 1.2s infinite; }
+
+.result-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.result-score { font-size: 2rem; font-weight: 900; }
+.result-score.pass { color: var(--green); }
+.result-score.fail { color: var(--red); }
+.result-verdict { font-weight: 700; color: var(--dim); }
+.result-feedback, .result-revised {
+  background: var(--bg);
+  border-radius: 9px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  font-size: 0.93rem;
+}
+.fb-npc { color: var(--gold); font-weight: 700; font-size: 0.82rem; margin-bottom: 4px; }
+.check-list { list-style: none; margin: 8px 0; font-size: 0.9rem; }
+.check-list .ok { color: var(--green); }
+.check-list .no { color: var(--red); }
+.result-tip { color: var(--dim); font-size: 0.88rem; margin: 8px 0; }
+.result-reward { color: var(--gold); font-weight: 800; margin-top: 10px; }
+.result-levelup { color: var(--green); font-weight: 800; }
+.result-medal { color: var(--gold); }
+.result-lesson { color: var(--dim); font-size: 0.88rem; margin-top: 8px; }
+
+/* ---------- 상점 ---------- */
+#shop-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.shop-item.owned { opacity: 0.85; }
+.shop-icon { font-size: 1.6rem; }
+.shop-info { flex: 1; }
+.shop-name { font-weight: 700; font-size: 0.95rem; }
+.shop-desc { color: var(--dim); font-size: 0.8rem; }
+
+/* ---------- 메달 ---------- */
+#medal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.medal {
+  background: var(--bg);
+  border: 1px solid var(--panel-2);
+  border-radius: 10px;
+  padding: 12px 8px;
   text-align: center;
-  color: var(--ink-dim);
-  font-size: 0.8rem;
-  margin-top: 40px;
+  opacity: 0.4;
+}
+.medal.earned { opacity: 1; border-color: var(--gold); }
+.medal-icon { font-size: 1.6rem; }
+.medal-name { font-weight: 700; font-size: 0.85rem; margin-top: 4px; }
+.medal-desc { color: var(--dim); font-size: 0.72rem; margin-top: 3px; }
+
+/* ---------- 기타 ---------- */
+.status-text { font-size: 0.85rem; color: var(--gold); min-height: 1.2em; margin-bottom: 8px; }
+.fine-print { font-size: 0.75rem; color: var(--dim); }
+.fine-print a { color: var(--accent); }
+
+#toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 14, 26, 0.95);
+  border: 1px solid var(--gold);
+  color: var(--ink);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  z-index: 60;
+  max-width: 90vw;
+  text-align: center;
+}
+
+/* ---------- 모바일 컨트롤 ---------- */
+#touch-controls {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+}
+#dpad { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.dpad-mid { display: flex; gap: 44px; }
+#touch-controls button {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-size: 1.1rem;
+  touch-action: none;
+}
+#pad-action {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 50% !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-weight: 900;
+}
+@media (pointer: coarse) {
+  #touch-controls { display: flex; }
 }

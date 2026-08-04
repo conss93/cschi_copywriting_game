@@ -3,73 +3,145 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>카피퀘스트: 잉크의 대륙</title>
+  <title>카피퀘스트: 글빨골목</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div class="container">
 
-    <!-- 인트로 / 캐릭터 생성 -->
-    <section id="screen-intro" class="screen">
-      <div class="intro-box">
-        <h1>🖋️ 카피퀘스트</h1>
-        <p class="subtitle">잉크의 대륙에서 살아남는 카피라이팅 RPG</p>
-        <div class="lore">
-          <p>대침묵(大沈默) 이후, 이 대륙에서는 <strong>사람의 주목(注目)</strong>이 곧 화폐가 되었다.</p>
-          <p>말로 발길을 멈추게 하는 자는 부유해지고, 그러지 못하는 자의 가게는 조용히 잊혀 사라진다.</p>
-          <p>당신은 이제 막 <strong>워드스미스 길드</strong>에 지원한 견습생. 퀘스트를 완수하고, 메달을 모으고, 언어의 용병으로 성장하라.</p>
+  <!-- 인트로 -->
+  <section id="intro-screen" class="fullscreen hidden">
+    <div id="intro-text"></div>
+    <p id="intro-hint">클릭해서 넘기기</p>
+  </section>
+
+  <!-- 캐릭터 선택 -->
+  <div id="charselect-modal" class="modal hidden">
+    <div class="modal-box">
+      <h2>당신은 누구인가요?</h2>
+      <input id="input-name" type="text" maxlength="10" placeholder="이름 (필명도 좋아요)" />
+      <div class="char-row">
+        <div class="char-card" data-preset="playerA">
+          <canvas width="64" height="72"></canvas>
+          <p>스타일 A</p>
         </div>
-        <input id="input-name" type="text" maxlength="12" placeholder="워드스미스의 이름" />
-        <br />
-        <button id="btn-start" class="btn primary">길드에 등록하기</button>
-      </div>
-    </section>
-
-    <!-- 허브(마을) -->
-    <section id="screen-hub" class="screen">
-      <div class="player-panel">
-        <div class="player-row">
-          <span id="player-name"></span>
-          <span id="player-level"></span>
-          <span id="player-xp"></span>
+        <div class="char-card" data-preset="playerB">
+          <canvas width="64" height="72"></canvas>
+          <p>스타일 B</p>
         </div>
-        <div class="xp-bar"><div id="xp-fill"></div></div>
       </div>
-
-      <h2 class="section-title">🗺️ 퀘스트 게시판</h2>
-      <div id="quest-list"></div>
-
-      <h2 class="section-title">🏅 업적 메달 (<span id="medal-count"></span>)</h2>
-      <div id="medal-list" class="medal-grid"></div>
-
-      <p class="footer-note">
-        진행 상황은 이 브라우저에 자동 저장됩니다.
-        <button id="btn-reset" class="btn secondary small">처음부터 다시</button>
-      </p>
-    </section>
-
-    <!-- 퀘스트 진행 -->
-    <section id="screen-quest" class="screen">
-      <div class="top-bar">
-        <button id="q-back" class="btn secondary small">← 마을로</button>
-      </div>
-      <div class="quest-panel">
-        <h2 id="q-title"></h2>
-        <p id="q-client"></p>
-        <p id="q-briefing"></p>
-        <p class="mission-label">📌 미션</p>
-        <p id="q-mission"></p>
-        <textarea id="q-input" placeholder="여기에 카피를 작성하세요..."></textarea>
-        <p class="char-row"><span id="q-charcount">0자</span></p>
-        <button id="q-submit" class="btn primary">카피 제출하기</button>
-        <div id="q-result" class="hidden"></div>
-      </div>
-    </section>
-
+      <button id="btn-charselect-ok" class="btn primary">글빨골목으로 이사하기</button>
+    </div>
   </div>
 
-  <script src="js/quests.js"></script>
-  <script src="js/achievements.js"></script>
+  <!-- 게임 화면 -->
+  <main id="game-wrap" class="hidden">
+    <header id="hud">
+      <div class="hud-left">
+        <span id="hud-name"></span>
+        <span id="hud-level"></span>
+        <div class="hud-xp"><div id="hud-xp-fill"></div></div>
+      </div>
+      <div class="hud-right">
+        <span id="hud-quest"></span>
+        <span id="hud-points"></span>
+        <span id="hud-ai" title="채점 방식"></span>
+        <button id="btn-medals" class="hud-btn" title="업적 메달">🏅</button>
+        <button id="btn-settings" class="hud-btn" title="설정 (API 키)">⚙️</button>
+        <button id="btn-reset" class="hud-btn" title="처음부터">↺</button>
+      </div>
+    </header>
+
+    <div id="canvas-holder">
+      <canvas id="game-canvas" width="768" height="512"></canvas>
+
+      <!-- 대화창 -->
+      <div id="dialogue" class="hidden">
+        <p id="dlg-name"></p>
+        <p id="dlg-text"></p>
+        <div id="dlg-menu"></div>
+      </div>
+    </div>
+
+    <!-- 모바일 컨트롤 -->
+    <div id="touch-controls">
+      <div id="dpad">
+        <button id="pad-up">▲</button>
+        <div class="dpad-mid">
+          <button id="pad-left">◀</button>
+          <button id="pad-right">▶</button>
+        </div>
+        <button id="pad-down">▼</button>
+      </div>
+      <button id="pad-action">A</button>
+    </div>
+  </main>
+
+  <!-- 퀘스트 -->
+  <div id="quest-modal" class="modal hidden">
+    <div class="modal-box wide">
+      <h2 id="q-title"></h2>
+      <p id="q-npc" class="modal-sub"></p>
+      <div id="q-form">
+        <p id="q-briefing" class="briefing"></p>
+        <p class="mission-label">📌 미션</p>
+        <p id="q-mission"></p>
+        <div id="q-hint-box" class="hint-box hidden"></div>
+        <textarea id="q-input" placeholder="여기에 카피를 작성하세요…"></textarea>
+        <p class="count-row"><span id="q-count">0자</span></p>
+        <div class="btn-row">
+          <button id="q-btn-coffee" class="btn secondary"></button>
+          <button id="q-btn-submit" class="btn primary">제출하기</button>
+          <button id="q-btn-close" class="btn ghost">닫기</button>
+        </div>
+      </div>
+      <div id="q-result" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- 상점 -->
+  <div id="shop-modal" class="modal hidden">
+    <div class="modal-box wide">
+      <h2>🏪 편의점 카피24</h2>
+      <p class="modal-sub">보유 포인트: <span id="shop-points"></span></p>
+      <div id="shop-list"></div>
+      <button id="btn-shop-close" class="btn ghost">나가기</button>
+    </div>
+  </div>
+
+  <!-- 설정 -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-box">
+      <h2>⚙️ 설정</h2>
+      <p class="modal-sub">Claude API 키를 넣으면 NPC들이 진짜 AI로 대화하고, 당신의 카피를 첨삭·채점해줍니다.</p>
+      <input id="input-apikey" type="password" placeholder="sk-ant-..." />
+      <p id="apikey-status" class="status-text"></p>
+      <p class="fine-print">
+        키는 이 브라우저의 localStorage에만 저장되며 어떤 서버로도 전송되지 않습니다 (Anthropic API 호출 제외).
+        키 발급: <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>
+      </p>
+      <div class="btn-row">
+        <button id="btn-apikey-save" class="btn primary">저장 & 연결 테스트</button>
+        <button id="btn-settings-close" class="btn ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메달 -->
+  <div id="medals-modal" class="modal hidden">
+    <div class="modal-box wide">
+      <h2>🏅 업적 메달</h2>
+      <div id="medal-grid"></div>
+      <button id="btn-medals-close" class="btn ghost">닫기</button>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
