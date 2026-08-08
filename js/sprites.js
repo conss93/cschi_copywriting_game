@@ -59,8 +59,14 @@ const CHAR_PRESETS = {
   corp: { body: BODY_SHORT, hair: "#4a4a54", skin: "#f0c8a0", cloth: "#8a8a9a", cloth2: "#6e6e7e", pants: "#2a2a34", hat: "none", glasses: true },
 };
 
-// 캐릭터를 (px, py) 픽셀 위치에 그린다. bob=걷기 애니메이션 오프셋
-function drawCharacter(ctx, presetName, px, py, bob, outfitPalette) {
+// 캐릭터를 (px, py) 픽셀 위치에 그린다.
+// anim: { moving, progress(0~1, 한 칸 이동 진행도), face('up'|'down'|'left'|'right'), idleOffset }
+function drawCharacter(ctx, presetName, px, py, anim, outfitPalette) {
+  anim = anim || {};
+  const face = anim.face || "down";
+  const moving = !!anim.moving;
+  const progress = Math.min(1, Math.max(0, anim.progress || 0));
+
   const p = CHAR_PRESETS[presetName] || CHAR_PRESETS.playerA;
   const cloth = (outfitPalette && outfitPalette.cloth) || p.cloth;
   const cloth2 = (outfitPalette && outfitPalette.cloth2) || p.cloth2;
@@ -68,14 +74,40 @@ function drawCharacter(ctx, presetName, px, py, bob, outfitPalette) {
   const scale = 2;
   const w = 12 * scale;
   const ox = px + (TILE - w) / 2;
-  const oy = py + TILE - 13 * scale + (bob || 0);
+
+  // 걷기 바운스: 한 걸음(progress 0→1) 동안 사인 곡선으로 살짝 떠올랐다 착지
+  const bounce = moving ? Math.round(Math.sin(progress * Math.PI) * 2) : (anim.idleOffset || 0);
+  const oy = py + TILE - 13 * scale - bounce;
+
+  // 그림자: 바운스와 무관하게 발밑 바닥에 고정 (캐릭터가 살짝 떠오르는 느낌을 준다)
+  ctx.fillStyle = "rgba(10,6,14,0.28)";
+  ctx.beginPath();
+  ctx.ellipse(px + TILE / 2, py + TILE - 3, w * 0.34, 3.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 걸음 프레임: 절반씩 나눠 다리를 번갈아 살짝 들어올린다
+  const frame = moving && progress >= 0.5 ? 1 : 0;
+
+  ctx.save();
+  const mirror = face === "left";
+  if (mirror) {
+    // 타일 중심을 기준으로 좌우 반전 (오른쪽 걷기 자세를 재사용)
+    ctx.translate(px + TILE, 0);
+    ctx.scale(-1, 1);
+  }
 
   p.body.forEach((row, ry) => {
     for (let rx = 0; rx < row.length; rx++) {
-      const ch = row[rx];
+      let ch = row[rx];
       if (ch === ".") continue;
+      if (face === "up" && ch === "E") ch = "H"; // 뒷모습: 눈을 머리카락 색으로 가림
+      let legLift = 0;
+      if (moving && ry >= 11) {
+        const isLeftLeg = rx < row.length / 2;
+        if ((frame === 0 && !isLeftLeg) || (frame === 1 && isLeftLeg)) legLift = -1;
+      }
       ctx.fillStyle = colors[ch] || "#f0f";
-      ctx.fillRect(ox + rx * scale, oy + ry * scale, scale, scale);
+      ctx.fillRect(ox + rx * scale, oy + ry * scale + legLift, scale, scale);
     }
   });
 
@@ -89,13 +121,13 @@ function drawCharacter(ctx, presetName, px, py, bob, outfitPalette) {
       }
     });
   }
-  // 안경
-  if (p.glasses) {
+  // 안경 (뒷모습에서는 생략)
+  if (p.glasses && face !== "up") {
     ctx.fillStyle = "rgba(40,40,50,0.85)";
-    const eyeRow = p.body === BODY_LONG ? 3 : 3;
-    ctx.fillRect(ox + 3 * scale, oy + eyeRow * scale, 3 * scale, scale);
-    ctx.fillRect(ox + 7 * scale, oy + eyeRow * scale, 3 * scale, scale);
+    ctx.fillRect(ox + 3 * scale, oy + 3 * scale, 3 * scale, scale);
+    ctx.fillRect(ox + 7 * scale, oy + 3 * scale, 3 * scale, scale);
   }
+  ctx.restore();
 }
 
 // ---------- 타일 그리기 ----------

@@ -344,7 +344,14 @@
   const keys = {};
   document.addEventListener("keydown", (e) => {
     if (UI.isModalOpen()) {
-      if (e.key === "Escape" && !storyPlaying) UI.closeModals();
+      if (e.key === "Escape" && !storyPlaying) {
+        UI.closeModals();
+        return;
+      }
+      // 대화창이 열려 있으면 방향키/숫자/엔터로 선택지 넘기기 (클릭 없이도 대화 진행)
+      if (UI.handleDialogueKey(e)) {
+        e.preventDefault();
+      }
       return;
     }
     keys[e.key] = true;
@@ -374,23 +381,40 @@
   }
 
   // ---------- 이동 ----------
-  const player = { x: 12, y: 9, moving: false, fromX: 12, fromY: 9, progress: 1 };
+  const STEP_MS = 130; // 한 칸 이동에 걸리는 시간 (짧을수록 반응이 즉각적으로 느껴진다)
+  const player = { x: 12, y: 9, moving: false, fromX: 12, fromY: 9, progress: 1, face: "down" };
+  let queuedMove = null; // 이동 애니메이션 도중 들어온 입력을 버퍼링 — 연타 시 "한 박자 밀리는" 느낌 방지
+
+  function faceFor(dx, dy) {
+    if (dx === 1) return "right";
+    if (dx === -1) return "left";
+    if (dy === 1) return "down";
+    if (dy === -1) return "up";
+    return player.face;
+  }
 
   function tryMove(dx, dy) {
-    if (player.moving || UI.isModalOpen()) return;
+    if (UI.isModalOpen()) return;
+    if (player.moving) {
+      queuedMove = [dx, dy]; // 최신 입력 하나만 버퍼링 — 애니메이션이 끝나는 즉시 이어서 이동
+      return;
+    }
     const nx = player.x + dx;
     const ny = player.y + dy;
-    // 잠긴 출입구 체크
     const warp = warpAt(nx, ny);
     if (warp && warp.requires && !state.flags[warp.requires]) {
       UI.toast(warp.lockMsg || "아직 갈 수 없다.");
       return;
     }
-    if (isSolid(nx, ny)) return;
+    if (isSolid(nx, ny)) {
+      player.face = faceFor(dx, dy); // 막힌 방향이라도 그쪽을 바라보게 (제자리 회전)
+      return;
+    }
     player.fromX = player.x;
     player.fromY = player.y;
     player.x = nx;
     player.y = ny;
+    player.face = faceFor(dx, dy);
     player.progress = 0;
     player.moving = true;
   }
@@ -414,15 +438,42 @@
     else if (target.shop) openShop();
   }
 
-  // ---------- 렌더링 ----------
+  // ---------- 렌더링 / 카메라 ----------
   const canvas = document.getElementById("game-canvas");
   const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
   let lastTime = 0;
+
+  // 모바일: 전체 맵을 축소해 보여주는 대신, 세로로 긴 카메라가 플레이어를 따라다닌다 (포켓몬식)
+  let viewport = { w: MAP_W, h: MAP_H };
+  function updateViewport() {
+    const mobile = window.matchMedia("(max-width: 640px)").matches;
+    viewport = mobile ? { w: 8, h: 12 } : { w: MAP_W, h: MAP_H };
+    canvas.width = viewport.w * TILE;
+    canvas.height = viewport.h * TILE;
+    ctx.imageSmoothingEnabled = false;
+  }
+  updateViewport();
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(updateViewport, 120);
+  });
+  window.addEventListener("orientationchange", updateViewport);
+
+  function getCamera() {
+    if (viewport.w >= MAP_W && viewport.h >= MAP_H) return { x: 0, y: 0 };
+    const px = player.fromX + (player.x - player.fromX) * player.progress;
+    const py = player.fromY + (player.y - player.fromY) * player.progress;
+    let cx = px - viewport.w / 2 + 0.5;
+    let cy = py - viewport.h / 2 + 0.5;
+    cx = Math.max(0, Math.min(MAP_W - viewport.w, cx));
+    cy = Math.max(0, Math.min(MAP_H - viewport.h, cy));
+    return { x: cx, y: cy };
+  }
 
   function update(dt) {
     if (player.moving) {
-      player.progress += dt / 160;
+      player.progress += dt / STEP_MS;
       if (player.progress >= 1) {
         player.progress = 1;
         player.moving = false;
@@ -431,10 +482,16 @@
         // 출입구 도착 → 맵 전환
         const warp = warpAt(player.x, player.y);
         if (warp && (!warp.requires || state.flags[warp.requires])) {
+          queuedMove = null;
           changeMap(warp.to, warp.tx, warp.ty);
           return;
         }
         save();
+        if (queuedMove) {
+          const [qdx, qdy] = queuedMove;
+          queuedMove = null;
+          tryMove(qdx, qdy);
+        }
       }
     } else if (!UI.isModalOpen()) {
       if (keys.ArrowUp || keys.w) tryMove(0, -1);
@@ -445,16 +502,28 @@
   }
 
   function render(time) {
-    for (let y = 0; y < MAP_H; y++) {
-      for (let x = 0; x < MAP_W; x++) {
+    const cam = getCamera();
+    const camPxX = cam.x * TILE;
+    const camPxY = cam.y * TILE;
+
+    ctx.save();
+    ctx.translate(-camPxX, -camPxY);
+
+    const x0 = Math.max(0, Math.floor(cam.x));
+    const x1 = Math.min(MAP_W, Math.ceil(cam.x + viewport.w) + 1);
+    const y0 = Math.max(0, Math.floor(cam.y));
+    const y1 = Math.min(MAP_H, Math.ceil(cam.y + viewport.h) + 1);
+
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
         drawTile(ctx, tileAt(x, y), x, y, time);
       }
     }
     currentMap().signs.forEach(([c, r, t]) => drawSign(ctx, c, r, t));
 
     npcsHere().forEach((npc) => {
-      const bob = Math.sin(time / 500 + npc.x) > 0.7 ? -1 : 0;
-      drawCharacter(ctx, npc.sprite, npc.x * TILE, npc.y * TILE, bob, null);
+      const idleOffset = Math.sin(time / 700 + npc.x * 1.3) > 0.6 ? -1 : 0;
+      drawCharacter(ctx, npc.sprite, npc.x * TILE, npc.y * TILE, { moving: false, progress: 0, face: npc.face || "down", idleOffset }, null);
       ctx.font = "10px 'Malgun Gothic', sans-serif";
       const label = npc.name;
       const lw = ctx.measureText(label).width + 8;
@@ -473,8 +542,9 @@
 
     const ix = (player.fromX + (player.x - player.fromX) * player.progress) * TILE;
     const iy = (player.fromY + (player.y - player.fromY) * player.progress) * TILE;
-    const bob = player.moving && Math.floor(time / 120) % 2 === 0 ? -2 : 0;
-    drawCharacter(ctx, state.charPreset, ix, iy, bob, outfitPalette());
+    drawCharacter(ctx, state.charPreset, ix, iy, { moving: player.moving, progress: player.progress, face: player.face }, outfitPalette());
+
+    ctx.restore();
 
     const target = facingTile();
     if (target && !UI.isModalOpen()) {

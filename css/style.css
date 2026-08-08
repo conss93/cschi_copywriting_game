@@ -245,9 +245,12 @@ textarea {
 #dlg-text { font-size: 0.98rem; white-space: pre-wrap; margin-bottom: 10px; }
 #dlg-menu { display: flex; gap: 8px; flex-wrap: wrap; }
 .dlg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   background: var(--panel-2);
   color: var(--ink);
-  border: none;
+  border: 2px solid transparent;
   border-radius: 8px;
   padding: 8px 14px;
   font-size: 0.9rem;
@@ -255,6 +258,32 @@ textarea {
 }
 .dlg-btn:hover { background: var(--accent); }
 .dlg-btn.primary { background: var(--accent); color: #fff; }
+.dlg-btn.focused {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(240, 208, 96, 0.25);
+}
+.dlg-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+.dlg-hint {
+  margin-top: 8px;
+  color: var(--dim);
+  font-size: 0.72rem;
+}
+@media (pointer: coarse) {
+  .dlg-hint { display: none; }
+  .dlg-key { display: none; } /* 터치 기기에서는 번호 배지 대신 그냥 탭 */
+}
 .chat-input-row { display: flex; gap: 8px; width: 100%; }
 .chat-input-row input { flex: 1; margin: 0; padding: 9px 12px; }
 

@@ -18,6 +18,7 @@ const UI = (function () {
     return modalOpen;
   }
   function openModal(id) {
+    $("#dialogue").classList.add("hidden"); // 대화창 위에 다른 모달이 뜨는 경우, 뒤에 숨어 키 입력을 가로채지 않도록 정리
     $("#" + id).classList.remove("hidden");
     modalOpen = true;
   }
@@ -119,7 +120,7 @@ const UI = (function () {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.scale(2.4, 2.4);
-      drawCharacter(ctx, card.dataset.preset, 0, 4, 0, null);
+      drawCharacter(ctx, card.dataset.preset, 0, 4, { moving: false, progress: 0, face: "down" }, null);
       ctx.restore();
       card.onclick = () => {
         cards.forEach((c) => c.classList.remove("selected"));
@@ -189,6 +190,15 @@ const UI = (function () {
   }
 
   // ---------- 대화창 ----------
+  let dlgFocus = 0;
+
+  function setDlgFocus(i) {
+    const btns = document.querySelectorAll("#dlg-menu .dlg-btn");
+    if (!btns.length) return;
+    dlgFocus = ((i % btns.length) + btns.length) % btns.length;
+    btns.forEach((b, idx) => b.classList.toggle("focused", idx === dlgFocus));
+  }
+
   function showDialogue(npc, text, options) {
     const box = $("#dialogue");
     box.classList.remove("hidden");
@@ -198,23 +208,57 @@ const UI = (function () {
     $("#dlg-text").textContent = text;
     const menu = $("#dlg-menu");
     menu.innerHTML = "";
-    (options || []).forEach((opt) => {
-      const btn = el("button", "dlg-btn" + (opt.primary ? " primary" : ""), opt.label);
+    (options || []).forEach((opt, i) => {
+      const btn = el("button", "dlg-btn" + (opt.primary ? " primary" : ""));
+      btn.appendChild(el("span", "dlg-key", String(i + 1)));
+      btn.appendChild(document.createTextNode(opt.label));
       btn.addEventListener("click", opt.onClick);
+      btn.addEventListener("mouseenter", () => setDlgFocus(i));
       menu.appendChild(btn);
     });
+    $("#dlg-hint").classList.toggle("hidden", (options || []).length === 0);
+    setDlgFocus(0);
+  }
+
+  // 대화창이 열려 있을 때 방향키/숫자/Enter로 선택지를 넘긴다 (마우스 클릭 없이도 진행 가능)
+  function handleDialogueKey(e) {
+    const box = $("#dialogue");
+    if (!box || box.classList.contains("hidden")) return false;
+    if ($("#dlg-menu input")) return false; // 잡담 입력창이 떠 있으면 입력창 자체 핸들러에 맡긴다
+    const btns = document.querySelectorAll("#dlg-menu .dlg-btn");
+    if (!btns.length) return false;
+
+    if (["ArrowUp", "ArrowLeft", "w", "a"].includes(e.key)) {
+      setDlgFocus(dlgFocus - 1);
+      return true;
+    }
+    if (["ArrowDown", "ArrowRight", "s", "d"].includes(e.key)) {
+      setDlgFocus(dlgFocus + 1);
+      return true;
+    }
+    if (e.key === " " || e.key === "Enter") {
+      btns[dlgFocus].click();
+      return true;
+    }
+    const num = parseInt(e.key, 10);
+    if (!isNaN(num) && num >= 1 && num <= btns.length) {
+      btns[num - 1].click();
+      return true;
+    }
+    return false;
   }
 
   function showChatInput(npc, onSend, onExit) {
     const menu = $("#dlg-menu");
     menu.innerHTML = "";
+    $("#dlg-hint").classList.add("hidden");
     const wrap = el("div", "chat-input-row");
     const input = el("input");
     input.type = "text";
     input.maxLength = 200;
     input.placeholder = npc.name + "에게 말 걸기…";
     const send = el("button", "dlg-btn primary", "전송");
-    const exit = el("button", "dlg-btn", "그만");
+    const exit = el("button", "dlg-btn", "그만 (ESC)");
     send.addEventListener("click", () => {
       const msg = input.value.trim();
       if (msg) {
@@ -420,7 +464,7 @@ const UI = (function () {
     isModalOpen, closeModals, toast,
     showTitle, backToTitle, runIntro, playStory,
     updateHUD, updateObjective,
-    showDialogue, showChatInput, showQuest, showGrading, showQuestResult,
+    showDialogue, handleDialogueKey, showChatInput, showQuest, showGrading, showQuestResult,
     showShop, showSettings, showHelp, showMedals,
   };
 })();
