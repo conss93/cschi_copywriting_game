@@ -425,13 +425,16 @@
   // (기존 4버튼 D패드는 위로 가다가 오른쪽으로 틀려면 손을 떼고 다시 눌러야 했다.)
   const DIR_VECTORS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
   function bindJoystick() {
+    const zone = document.getElementById("joystick-zone");
     const base = document.getElementById("joystick");
     const knob = document.getElementById("joystick-knob");
-    if (!base || !knob) return;
+    if (!zone || !base || !knob) return;
     const MAX_R = 30; // 스틱 손잡이 최대 이동 반경(px)
     const DEAD_ZONE = 10; // 이 반경 안쪽은 중립(방향 없음)으로 취급
     let activeId = null;
     let currentDir = null;
+    let originX = 0;
+    let originY = 0; // 부유형: 터치를 시작한 지점이 곧 스틱의 중심이 된다
 
     function setDir(dir) {
       if (currentDir === dir) return;
@@ -446,10 +449,25 @@
       }
     }
 
+    function showAt(clientX, clientY) {
+      const zoneRect = zone.getBoundingClientRect();
+      originX = clientX;
+      originY = clientY;
+      base.style.left = clientX - zoneRect.left + "px";
+      base.style.top = clientY - zoneRect.top + "px";
+      base.classList.add("active");
+      knob.style.transform = "translate(0px, 0px)";
+    }
+
+    function hide() {
+      base.classList.remove("active");
+      knob.style.transform = "translate(0px, 0px)";
+      setDir(null);
+    }
+
     function updateFromPoint(clientX, clientY) {
-      const rect = base.getBoundingClientRect();
-      const dx = clientX - (rect.left + rect.width / 2);
-      const dy = clientY - (rect.top + rect.height / 2);
+      const dx = clientX - originX;
+      const dy = clientY - originY;
       const dist = Math.hypot(dx, dy);
       if (dist < DEAD_ZONE) {
         knob.style.transform = "translate(0px, 0px)";
@@ -467,8 +485,8 @@
     function onDown(e) {
       if (activeId !== null) return;
       activeId = e.pointerId;
-      base.setPointerCapture(activeId);
-      updateFromPoint(e.clientX, e.clientY);
+      zone.setPointerCapture(activeId);
+      showAt(e.clientX, e.clientY);
       e.preventDefault();
     }
     function onMove(e) {
@@ -479,13 +497,12 @@
     function onUp(e) {
       if (e.pointerId !== activeId) return;
       activeId = null;
-      knob.style.transform = "translate(0px, 0px)";
-      setDir(null);
+      hide();
     }
-    base.addEventListener("pointerdown", onDown);
-    base.addEventListener("pointermove", onMove);
-    base.addEventListener("pointerup", onUp);
-    base.addEventListener("pointercancel", onUp);
+    zone.addEventListener("pointerdown", onDown);
+    zone.addEventListener("pointermove", onMove);
+    zone.addEventListener("pointerup", onUp);
+    zone.addEventListener("pointercancel", onUp);
   }
 
   // ---------- 이동 ----------

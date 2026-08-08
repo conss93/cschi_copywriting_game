@@ -454,38 +454,52 @@ textarea {
   border-radius: 10px;
   font-size: 0.9rem;
   z-index: 60;
+  pointer-events: none; /* 안내용 알림일 뿐이라, 그 아래 조이스틱/버튼 터치를 가로채면 안 된다 */
   max-width: 90vw;
   text-align: center;
 }
 
 /* ---------- 모바일 컨트롤 ---------- */
-/* 캔버스 아래 별도 공간을 차지하지 않고, 게임 화면(canvas-holder) 위에 겹쳐서 띄운다.
+/* 캔버스 아래 별도 공간을 차지하지 않고, 게임 화면(canvas-holder) 전체 위에 겹쳐서 띄운다.
    그래야 세로로 짧은 화면에서도 방향키/버튼이 화면 밖으로 밀려 잘리지 않는다. */
 #touch-controls {
   display: none;
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: max(10px, env(safe-area-inset-bottom));
-  justify-content: space-between;
-  align-items: flex-end;
-  padding: 0 14px;
-  pointer-events: none; /* 컨테이너 자체는 클릭을 막지 않고, 버튼만 반응 */
+  inset: 0;
+  pointer-events: none; /* 컨테이너 자체는 클릭을 막지 않고, 각 요소만 반응 */
   z-index: 6; /* 캔버스 위, 대화창(10)보다는 아래 */
 }
+/* 부유형 스틱 터치 영역: 화면 왼쪽 아무 곳이나 짚으면 그 자리에 스틱이 나타난다.
+   고정된 자리를 짚어야 하는 불편함 없이, 엄지가 편한 위치에서 바로 조작할 수 있다. */
+#joystick-zone {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  pointer-events: auto;
+  touch-action: none;
+}
 /* 아날로그 스틱: 손을 떼지 않고 드래그 방향을 바꿔가며 이동할 수 있다 (기존 4버튼 방식은
-   방향을 바꿀 때마다 손을 떼고 다시 눌러야 하는 불편함이 있었다). */
+   방향을 바꿀 때마다 손을 떼고 다시 눌러야 하는 불편함이 있었다). 평소엔 숨겨져 있다가
+   터치 순간 그 위치에 나타난다 (부유형). */
 #joystick {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 92px;
   height: 92px;
+  margin-left: -46px;
+  margin-top: -46px;
   border-radius: 50%;
   background: rgba(42, 34, 51, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-  touch-action: none;
-  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
 }
+#joystick.active { opacity: 1; }
 #joystick-knob {
   position: absolute;
   left: 50%;
@@ -500,7 +514,11 @@ textarea {
   pointer-events: none;
   transition: transform 0.05s linear;
 }
+/* A버튼: 화면 맨 구석 대신 엄지가 자연스럽게 닿는 안쪽/위쪽으로 옮김 */
 #pad-action {
+  position: absolute;
+  right: 30px;
+  bottom: 86px;
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -514,7 +532,7 @@ textarea {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 @media (pointer: coarse) {
-  #touch-controls { display: flex; }
+  #touch-controls { display: block; }
 }
 
 /* ---------- 모바일 최적화 ---------- */
@@ -533,10 +551,9 @@ button, .btn, .dlg-btn, .hud-btn, .title-btn { touch-action: manipulation; }
   #dialogue { padding: 10px 12px; left: 2%; right: 2%; bottom: 2%; }
   #dlg-text { font-size: 0.9rem; }
   .dlg-btn { padding: 8px 10px; font-size: 0.85rem; }
-  #touch-controls { padding: 0 10px; bottom: max(6px, env(safe-area-inset-bottom)); }
-  #joystick { width: 82px; height: 82px; }
+  #joystick { width: 82px; height: 82px; margin-left: -41px; margin-top: -41px; }
   #joystick-knob { width: 38px; height: 38px; margin-left: -19px; margin-top: -19px; }
-  #pad-action { width: 54px; height: 54px; }
+  #pad-action { width: 54px; height: 54px; right: 22px; bottom: 76px; }
   .result-score { font-size: 1.6rem; }
   #intro-text { font-size: 0.98rem; line-height: 1.9; }
 }
