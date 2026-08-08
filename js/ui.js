@@ -220,6 +220,20 @@ const UI = (function () {
     setDlgFocus(0);
   }
 
+  // AI 응답 대기 중임을 분명히 보여주는 전용 표시 ("…"만 뜨면 멈춘 것처럼 보여 오해할 수 있다)
+  function showThinking(npc) {
+    const box = $("#dialogue");
+    box.classList.remove("hidden");
+    modalOpen = true;
+    $("#dlg-name").textContent = npc ? npc.name + " · " + npc.title : "";
+    $("#dlg-name").style.color = npc ? npc.color : "#f0d060";
+    $("#dlg-text").innerHTML =
+      '<span class="dlg-typing">' + (npc ? npc.name : "상대") +
+      '이(가) 답장을 쓰는 중<span class="dlg-dots"><span>.</span><span>.</span><span>.</span></span></span>';
+    $("#dlg-menu").innerHTML = "";
+    $("#dlg-hint").classList.add("hidden");
+  }
+
   // 대화창이 열려 있을 때 방향키/숫자/Enter로 선택지를 넘긴다 (마우스 클릭 없이도 진행 가능)
   function handleDialogueKey(e) {
     const box = $("#dialogue");
@@ -465,7 +479,7 @@ const UI = (function () {
     isModalOpen, closeModals, toast,
     showTitle, backToTitle, runIntro, playStory,
     updateHUD, updateObjective,
-    showDialogue, handleDialogueKey, showChatInput, showQuest, showGrading, showQuestResult,
+    showDialogue, showThinking, handleDialogueKey, showChatInput, showQuest, showGrading, showQuestResult,
     showShop, showSettings, showHelp, showMedals,
   };
 })();

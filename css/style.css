@@ -243,6 +243,11 @@ textarea {
 }
 #dlg-name { font-weight: 800; font-size: 0.92rem; margin-bottom: 4px; }
 #dlg-text { font-size: 0.98rem; white-space: pre-wrap; margin-bottom: 10px; }
+.dlg-typing { opacity: 0.75; font-style: italic; }
+.dlg-dots span { animation: dlg-blink 1.2s infinite; opacity: 0.2; }
+.dlg-dots span:nth-child(2) { animation-delay: 0.2s; }
+.dlg-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dlg-blink { 0%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
 #dlg-menu { display: flex; gap: 8px; flex-wrap: wrap; }
 .dlg-btn {
   display: inline-flex;

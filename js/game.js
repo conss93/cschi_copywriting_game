@@ -24,6 +24,7 @@
     coffeesBought: 0,
     chatCount: 0,
     practiceCount: 0,
+    affinity: {}, // npcId -> 잡담 횟수 (친밀도)
     medals: [],
     flags: {}, // 스토리 플래그 (tutorialDone, marketOpen, ending …)
     storyDone: [], // 재생 완료된 스토리 이벤트 id
@@ -290,9 +291,15 @@
     UI.showDialogue(npc, greeting, options);
   }
 
-  // ---------- 잡담 (AI) ----------
+  // ---------- 잡담 (AI) / 친밀도 ----------
   function startChat(npc) {
     state.chatCount = (state.chatCount || 0) + 1;
+    if (!state.affinity) state.affinity = {};
+    state.affinity[npc.id] = (state.affinity[npc.id] || 0) + 1;
+    if (state.affinity[npc.id] === 5) {
+      state.points += 100;
+      UI.toast("🤝 " + npc.name + "과(와) 친해졌다! 선물로 100P를 받았다.", true);
+    }
     checkMedals();
     save();
     const history = [];
@@ -312,7 +319,7 @@
       npc,
       async (msg) => {
         history.push({ role: "user", content: msg });
-        UI.showDialogue(npc, "…", []);
+        UI.showThinking(npc);
         try {
           const reply = await AI.chat(npc, history, state.name);
           history.push({ role: "assistant", content: reply });

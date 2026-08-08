@@ -350,6 +350,34 @@ const QUESTS = [
       { desc: "정성·온기 표현 포함 (새벽·정성·손맛·직접 등)", test: (t) => /새벽|정성|손맛|직접|우리|엄마|매일/.test(t) },
     ],
   },
+  // ---------- 에필로그 서브 퀘스트 (엔딩 이후) ----------
+  {
+    id: "s07", type: "sub", npcId: "salt", requires: "ending", title: "평생 단골에게 보내는 문자",
+    briefing:
+      "…축제 끝나고 단골이 확 늘었어. 이 참에 문자 하나 돌리려고. '앞으로도 잘 부탁드립니다' 이런 뻔한 거 말고, 진짜 마음이 가게 써 줄 수 있나.",
+    mission: "축제 이후 늘어난 단골에게 보낼 감사 문자를 40자 이내로 작성하라.",
+    lesson: "감사 인사도 카피다. 뻔한 인사말보다, 함께한 구체적 순간을 짚어주는 문장이 마음에 남는다.",
+    example: "그날 무대 앞에서 함께 박수쳐주셔서, 이 골목이 살았습니다. 감사합니다.",
+    minLength: 10, reward: { xp: 100, points: 700 },
+    checks: [
+      { desc: "40자 이내", test: (t) => t.length <= 40 },
+      { desc: "'항상·앞으로도' 같은 상투적 인사 회피", test: (t) => !/^(항상|앞으로도|늘)\s*(감사|사랑)/.test(t.trim()) },
+      { desc: "구체적 순간·감정 언급 (축제·무대·박수·골목 등)", test: (t) => /축제|무대|박수|골목|그날|덕분/.test(t) },
+    ],
+  },
+  {
+    id: "s08", type: "sub", npcId: "managerQ", requires: "ending", title: "화해의 코너",
+    briefing:
+      "…재검토 결과가 나왔습니다. 대신, 몰팩토리 1층에 '골목 상생 코너'를 만들기로 했어요. 이 코너의 안내 문구, 당신이 써주시겠습니까? 데이터로는 설명 안 되는 걸, 이제는 알 것 같아서요.",
+    mission: "몰팩토리 1층 '골목 상생 코너' 안내 문구를 50자 이내로 작성하라.",
+    lesson: "경쟁자였던 존재가 협력자가 되는 순간에도 카피는 필요하다. 대결이 아니라 공존을 말하는 문장을 써라.",
+    example: "여기, 골목이 걸어 들어왔습니다. 몰팩토리 1층, 글빨골목 상생관.",
+    minLength: 10, reward: { xp: 100, points: 700 },
+    checks: [
+      { desc: "50자 이내", test: (t) => t.length <= 50 },
+      { desc: "공존·상생의 정서 (함께·골목·연결 등)", test: (t) => /함께|골목|연결|공존|상생|이어/.test(t) },
+    ],
+  },
 ];
 
 // ---------- 스토리 이벤트 ----------
@@ -573,4 +601,7 @@ const ACHIEVEMENTS = [
   { id: "level5", icon: "⭐", name: "떠오르는 신예", desc: "레벨 5에 도달했다.", cond: (s) => s.level >= 5 },
   { id: "level10", icon: "🌟", name: "골목의 에이스", desc: "레벨 10에 도달했다.", cond: (s) => s.level >= 10 },
   { id: "grassGrinder", icon: "🌾", name: "풀숲의 단골", desc: "연습 마당에서 즉흥 훈련을 10번 완수했다.", cond: (s) => (s.practiceCount || 0) >= 10 },
+  { id: "bestFriend", icon: "🤝", name: "베스트프렌드", desc: "한 사람과 잡담을 5번 이상 나눴다.", cond: (s) => Object.values(s.affinity || {}).some((n) => n >= 5) },
+  { id: "wholeTown", icon: "🏘️", name: "온 동네 친구", desc: "골목의 모든 사람과 한 번씩 잡담을 나눴다.", cond: (s) => NPCS.every((n) => (s.affinity || {})[n.id] >= 1) },
+  { id: "epilogue", icon: "🕊️", name: "완전한 해피엔딩", desc: "엔딩 이후의 에필로그 의뢰까지 모두 마쳤다.", cond: (s) => !!s.completed.s07 && !!s.completed.s08 },
 ];
