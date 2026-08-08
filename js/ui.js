@@ -361,7 +361,9 @@ const UI = (function () {
       result.checks.forEach((c) => ul.appendChild(el("li", c.pass ? "ok" : "no", (c.pass ? "✅ " : "❌ ") + c.desc)));
       box.appendChild(ul);
     }
-    if (result.revised) {
+    // '프로의 정답'은 합격했을 때만 보여준다 — 불합격 상태에서 보여주면 다시 쓰기 후
+    // 그대로 베껴 넣는 우회로가 생겨버려서, 재도전 중에는 원칙(tip)만 힌트로 준다.
+    if (result.revised && result.pass) {
       const rv = el("div", "result-revised");
       rv.appendChild(el("p", "fb-npc", "🖋️ 프로는 이렇게 씁니다"));
       rv.appendChild(el("p", "revised-copy", "“" + result.revised + "”"));
