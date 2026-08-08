@@ -443,11 +443,12 @@
   const ctx = canvas.getContext("2d");
   let lastTime = 0;
 
-  // 모바일: 전체 맵을 축소해 보여주는 대신, 세로로 긴 카메라가 플레이어를 따라다닌다 (포켓몬식)
-  let viewport = { w: MAP_W, h: MAP_H };
+  // 전체 맵을 한눈에 보여주는 대신, 플레이어를 따라다니는 카메라로 가까이서 본다 (포켓몬 골드식).
+  // 화면이 좁으면(모바일) 세로로 긴 뷰포트, 넓으면(데스크톱) 가로로 넓은 뷰포트를 쓴다.
+  let viewport = { w: 15, h: 10 };
   function updateViewport() {
     const mobile = window.matchMedia("(max-width: 640px)").matches;
-    viewport = mobile ? { w: 8, h: 12 } : { w: MAP_W, h: MAP_H };
+    viewport = mobile ? { w: 8, h: 12 } : { w: 15, h: 10 };
     canvas.width = viewport.w * TILE;
     canvas.height = viewport.h * TILE;
     ctx.imageSmoothingEnabled = false;

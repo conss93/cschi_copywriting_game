@@ -308,6 +308,48 @@ const QUESTS = [
       { desc: "'맛있다' 류의 스포일러 회피", test: (t) => !/맛있|존맛/.test(t) },
     ],
   },
+  {
+    id: "s04", type: "sub", npcId: "bottle", requires: "q02", title: "가을 세트의 이름",
+    briefing:
+      "카피라이터님, 또 부탁드려요. 가을맞이 3종 세트(텀블러+보온병+파우치)를 묶어서 파는데, 상품명이 그냥 '가을 세트'예요. 이러면 아무도 특별하다고 안 느끼겠죠?",
+    mission: "가을 3종 세트(텀블러+보온병+파우치)의 상품명을 12자 이내로 지어라.",
+    lesson: "묶음 상품의 이름은 구성품 나열이 아니라, 그 조합이 만드는 하나의 장면이어야 한다.",
+    example: "가을 완비 세트",
+    minLength: 3, reward: { xp: 90, points: 550 },
+    checks: [
+      { desc: "12자 이내", test: (t) => t.length <= 12 },
+      { desc: "'가을' 계절감 유지", test: (t) => /가을|단풍|선선|10월|11월/.test(t) },
+      { desc: "'세트' 단어 그대로 나열 회피(더 나은 표현으로 대체)", test: (t) => !/^가을\s*세트$/.test(t.trim()) },
+    ],
+  },
+  {
+    id: "s05", type: "sub", npcId: "bong", requires: "q04", title: "첫 마디, 웰컴 카드",
+    briefing:
+      "손님방마다 놓는 웰컴 카드가 있는데, 지금은 그냥 '환영합니다'예요. 체크인하고 지친 몸으로 방문을 여는 그 순간, 딱 한 마디를 건네고 싶은데요.",
+    mission: "체크인 직후 손님이 처음 보는 웰컴 카드 문구를 20자 이내로 작성하라.",
+    lesson: "첫 마디는 정보보다 태도를 전한다. '환영합니다'보다 '오느라 고생했다'는 마음이 먼저 가닿는다.",
+    example: "오늘 하루도 고생했어요, 잘 왔어요",
+    minLength: 5, reward: { xp: 90, points: 550 },
+    checks: [
+      { desc: "20자 이내", test: (t) => t.length <= 20 },
+      { desc: "'환영합니다' 관성적 표현 회피", test: (t) => !/환영합니다|환영해요/.test(t) },
+      { desc: "위로·안부의 정서 (고생|피곤|쉬|편히|잘 왔 등)", test: (t) => /고생|피곤|쉬|편히|잘\s*왔|따뜻/.test(t) },
+    ],
+  },
+  {
+    id: "s06", type: "sub", npcId: "jinsim", requires: "q05", title: "라벨 한 줄의 무게",
+    briefing:
+      "우리 작가님, 이번엔 반찬통 라벨이야. '멸치볶음, 200g, 냉장 보관'만 딱 적혀 있는데… 이것도 좀 더 정 담아서 쓸 수 있을까? 근데 냉장 보관이란 정보는 꼭 남아야 해.",
+    mission: "멸치볶음 라벨 문구를 작성하라. 냉장 보관 정보는 유지하되, 정성이 느껴지게 써라. (30자 이내)",
+    lesson: "정보와 감성은 둘 중 하나를 버리는 게 아니라 한 문장 안에 같이 놓는 것이다. 실용 정보는 신뢰를, 온기 있는 말은 마음을 산다.",
+    example: "새벽에 볶은 멸치볶음, 냉장 보관 5일",
+    minLength: 8, reward: { xp: 90, points: 550 },
+    checks: [
+      { desc: "30자 이내", test: (t) => t.length <= 30 },
+      { desc: "'냉장 보관' 정보 유지", test: (t) => /냉장/.test(t) },
+      { desc: "정성·온기 표현 포함 (새벽·정성·손맛·직접 등)", test: (t) => /새벽|정성|손맛|직접|우리|엄마|매일/.test(t) },
+    ],
+  },
 ];
 
 // ---------- 스토리 이벤트 ----------
@@ -368,11 +410,38 @@ const STORY = [
     ],
   },
   {
+    id: "after_q04", trigger: { type: "questDone", quest: "q04" },
+    lines: [
+      { npc: "bong", text: "손님이 늘 것 같아요, 고마워요. 참… 골목 안쪽 진심반찬 사장님 표정이 요 며칠 많이 안 좋던데." },
+      { npc: null, text: "다음 골목으로 걸어가는 길, 전봇대에 새 공고문이 붙어 있다. 『재개발 동의서 접수 마감 D-14』" },
+    ],
+    objective: "반찬가게 정진심의 의뢰를 해결하자",
+  },
+  {
     id: "after_q05", trigger: { type: "questDone", quest: "q05" },
     lines: [
       { npc: "jinsim", text: "고맙네, 우리 작가님… 어, 골목기획 오팀장이 급히 찾던데? 무슨 큰 계획이 있다나." },
+      { npc: null, text: "골목기획 사무실로 돌아가자, 오팀장이 벽에 붙은 전단지 하나를 가리킨다. 『재개발 동의서 접수 마감 D-14』" },
+      { npc: "oh", text: "다섯 가게, 다 도움을 받았다고 들었습니다. 이 정도면 이야기해도 되겠네요." },
+      { npc: "oh", text: "동의서 마감이 D-14. 그 전에 이 골목을 몰팩토리보다 크게 보이게 만들 겁니다. 이름은 — '글빨장터'. 골목 전체가 함께 여는 축제죠." },
+      { npc: "oh", text: "뉴스레터로 사람을 모으고, 라이브 커머스로 자금을 모으고, 메인 부스 하나로 시선을 끕니다. 세 가지 다 당신이 씁니다." },
+      { npc: "oh", text: "실패하면… 이 골목엔 다음이 없어요. 시작하죠." },
     ],
-    objective: "골목기획 사무실의 오팀장을 찾아가자",
+    objective: "골목기획 오팀장의 '글빨장터' 준비를 도와라 (1교시)",
+  },
+  {
+    id: "after_q06", trigger: { type: "questDone", quest: "q06" },
+    lines: [
+      { npc: "oh", text: "오픈율은 지켜보죠. 다음은 더 급합니다 — 부스 대여료도, 무대 대여료도 공짜가 아니에요." },
+    ],
+    objective: "골목기획 오팀장의 다음 의뢰를 진행하자 (2교시)",
+  },
+  {
+    id: "after_q07", trigger: { type: "questDone", quest: "q07" },
+    lines: [
+      { npc: "oh", text: "자금은 해결됐습니다. 이제 축제의 얼굴이 필요해요. 이걸 실패하면 사람들은 부스 앞을 그냥 지나칩니다." },
+    ],
+    objective: "골목기획 오팀장의 마지막 수업을 받자 (3교시)",
   },
   {
     id: "after_q08", trigger: { type: "questDone", quest: "q08" },
@@ -427,7 +496,7 @@ const ACHIEVEMENTS = [
   { id: "ch2", icon: "🔥", name: "축제의 서막", desc: "골목의 위기에 맞서기로 했다. (2장 클리어)", cond: (s) => !!s.completed.q05 },
   { id: "ch3", icon: "🎪", name: "전야제", desc: "글빨장터 준비를 끝냈다. (3장 클리어)", cond: (s) => !!s.completed.q08 },
   { id: "ending", icon: "🏆", name: "골목을 지킨 펜", desc: "몰팩토리와의 대결에서 승리했다.", cond: (s) => !!s.flags.ending },
-  { id: "subAll", icon: "🤝", name: "오지랖 만렙", desc: "서브 의뢰를 전부 완수했다.", cond: (s) => ["s01", "s02", "s03"].every((q) => s.completed[q]) },
+  { id: "subAll", icon: "🤝", name: "오지랖 만렙", desc: "서브 의뢰를 전부 완수했다.", cond: (s) => ["s01", "s02", "s03", "s04", "s05", "s06"].every((q) => s.completed[q]) },
   { id: "perfect", icon: "💯", name: "한 번에 통과", desc: "90점 이상으로 합격했다.", cond: (s) => s.bestScore >= 90 },
   { id: "hundred", icon: "📚", name: "교과서", desc: "100점을 받았다.", cond: (s) => s.bestScore >= 100 },
   { id: "grinder", icon: "🔁", name: "퇴고의 장인", desc: "한 의뢰에 3번 이상 도전해 합격했다.", cond: (s) => Object.values(s.completed).some((c) => c.attempts >= 3) },

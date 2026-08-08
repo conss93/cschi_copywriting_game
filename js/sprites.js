@@ -73,11 +73,9 @@ function drawCharacter(ctx, presetName, px, py, anim, outfitPalette) {
   const colors = { H: p.hair, S: p.skin, E: "#2a2020", C: cloth, c: cloth2, P: p.pants, B: "#2a2a2a" };
   const scale = 2;
   const w = 12 * scale;
-  const ox = px + (TILE - w) / 2;
 
   // 걷기 바운스: 한 걸음(progress 0→1) 동안 사인 곡선으로 살짝 떠올랐다 착지
   const bounce = moving ? Math.round(Math.sin(progress * Math.PI) * 2) : (anim.idleOffset || 0);
-  const oy = py + TILE - 13 * scale - bounce;
 
   // 그림자: 바운스와 무관하게 발밑 바닥에 고정 (캐릭터가 살짝 떠오르는 느낌을 준다)
   ctx.fillStyle = "rgba(10,6,14,0.28)";
@@ -88,13 +86,17 @@ function drawCharacter(ctx, presetName, px, py, anim, outfitPalette) {
   // 걸음 프레임: 절반씩 나눠 다리를 번갈아 살짝 들어올린다
   const frame = moving && progress >= 0.5 ? 1 : 0;
 
+  // 이 타일의 절대 위치로 원점을 한 번만 이동한 뒤, 이후에는 전부 타일 기준
+  // 로컬 좌표(ox/oy)만 사용한다 — 반전(mirror) 시 px를 두 번 반영하던 버그 방지.
   ctx.save();
+  ctx.translate(px, py);
   const mirror = face === "left";
   if (mirror) {
-    // 타일 중심을 기준으로 좌우 반전 (오른쪽 걷기 자세를 재사용)
-    ctx.translate(px + TILE, 0);
+    ctx.translate(TILE, 0); // 타일 폭 기준으로 좌우 반전 (오른쪽 걷기 자세를 재사용)
     ctx.scale(-1, 1);
   }
+  const ox = (TILE - w) / 2;
+  const oy = TILE - 13 * scale - bounce;
 
   p.body.forEach((row, ry) => {
     for (let rx = 0; rx < row.length; rx++) {
