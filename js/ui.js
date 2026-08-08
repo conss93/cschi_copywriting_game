@@ -143,12 +143,21 @@ const UI = (function () {
 
   // ---------- 스토리 컷신 ----------
   // lines: [{npc: npcId|null, text}], 순서대로 클릭해서 넘긴다
-  function playStory(lines, onDone) {
+  // playerName을 주면 line.npc === "player"인 줄을 주인공이 직접 말하는 것으로 표시한다.
+  // (영웅서기식으로 NPC 혼자 떠드는 게 아니라 주인공도 맞받아 말하는 대화를 구현하기 위함)
+  function playStory(lines, onDone, playerName) {
     let idx = 0;
     function showLine() {
       const line = lines[idx];
-      const npc = line.npc ? NPCS.find((n) => n.id === line.npc) : null;
       const isLast = idx === lines.length - 1;
+      let npc = null;
+      let isPlayer = false;
+      if (line.npc === "player") {
+        isPlayer = true;
+        npc = { name: playerName || "나", title: "", color: "#8ecae6" };
+      } else if (line.npc) {
+        npc = NPCS.find((n) => n.id === line.npc);
+      }
       showDialogue(npc, line.text, [
         {
           label: isLast ? "✔ 확인" : "▶ 다음",
@@ -165,7 +174,12 @@ const UI = (function () {
       if (!npc) {
         $("#dlg-name").textContent = "— 이야기 —";
         $("#dlg-name").style.color = "#a698bc";
+      } else if (isPlayer) {
+        $("#dlg-name").textContent = npc.name + " (나)";
+        $("#dlg-name").style.color = npc.color;
+        $("#dialogue").classList.add("player-turn");
       }
+      if (!isPlayer) $("#dialogue").classList.remove("player-turn");
     }
     showLine();
   }
@@ -332,6 +346,75 @@ const UI = (function () {
     $("#q-btn-close").onclick = () => closeModals();
   }
 
+  // ---------- 미니게임 (시간 제한 4지선다) ----------
+  function showMinigame(quest, npc, handlers) {
+    openModal("quest-modal");
+    $("#q-title").textContent = "⚡ [훈련] " + quest.title;
+    $("#q-npc").textContent = npc.name + " · " + npc.title;
+    $("#q-npc").style.color = npc.color;
+    $("#q-form").classList.add("hidden");
+    $("#q-result").classList.add("hidden");
+    $("#mg-form").classList.remove("hidden");
+
+    const TIME_MS = 6000;
+    let round = 0;
+    let correct = 0;
+    let timer = null;
+    let locked = false;
+
+    function showRound() {
+      locked = false;
+      clearInterval(timer);
+      const r = quest.rounds[round];
+      $("#mg-progress").textContent = (round + 1) + " / " + quest.rounds.length + "라운드 — 시간 안에 골라라!";
+      $("#mg-prompt").textContent = "“" + r.prompt + "”";
+      const box = $("#mg-options");
+      box.innerHTML = "";
+      r.options.forEach((opt) => {
+        const btn = el("button", "btn mg-option");
+        btn.textContent = opt.text;
+        btn.addEventListener("click", () => choose(opt, btn));
+        box.appendChild(btn);
+      });
+      let elapsed = 0;
+      $("#mg-timerfill").style.width = "100%";
+      timer = setInterval(() => {
+        elapsed += 100;
+        $("#mg-timerfill").style.width = Math.max(0, 100 - (elapsed / TIME_MS) * 100) + "%";
+        if (elapsed >= TIME_MS) {
+          clearInterval(timer);
+          choose(null, null); // 시간 초과 = 오답 처리
+        }
+      }, 100);
+    }
+
+    function choose(opt, btn) {
+      if (locked) return;
+      locked = true;
+      clearInterval(timer);
+      const isCorrect = !!(opt && opt.correct);
+      if (isCorrect) correct++;
+      // 정답/오답을 짧게 보여준 뒤 다음 라운드로 (모든 버튼 비활성화, 고른 것/정답 표시)
+      const btns = document.querySelectorAll("#mg-options .mg-option");
+      btns.forEach((b) => (b.disabled = true));
+      const optButtons = Array.from(btns);
+      quest.rounds[round].options.forEach((o, i) => {
+        if (o.correct) optButtons[i].classList.add("mg-correct");
+      });
+      if (btn && !isCorrect) btn.classList.add("mg-wrong");
+      setTimeout(() => {
+        round++;
+        if (round < quest.rounds.length) showRound();
+        else {
+          $("#mg-form").classList.add("hidden");
+          if (handlers && handlers.onDone) handlers.onDone(correct, quest.rounds.length);
+        }
+      }, 550);
+    }
+
+    showRound();
+  }
+
   function showGrading(npcName) {
     $("#q-form").classList.add("hidden");
     const box = $("#q-result");
@@ -385,7 +468,10 @@ const UI = (function () {
       const retry = el("button", "btn secondary", "다시 쓰기");
       retry.addEventListener("click", () => {
         $("#q-result").classList.add("hidden");
-        $("#q-form").classList.remove("hidden");
+        // 미니게임처럼 텍스트 입력창(#q-form)이 아닌 다른 화면을 쓰는 퀘스트는
+        // handlers.onRetry로 각자 알맞은 재도전 화면을 다시 띄운다.
+        if (handlers && handlers.onRetry) handlers.onRetry();
+        else $("#q-form").classList.remove("hidden");
       });
       row.appendChild(retry);
     }
@@ -483,7 +569,7 @@ const UI = (function () {
     isModalOpen, closeModals, toast,
     showTitle, backToTitle, runIntro, playStory,
     updateHUD, updateObjective,
-    showDialogue, showThinking, handleDialogueKey, showChatInput, showQuest, showGrading, showQuestResult,
+    showDialogue, showThinking, handleDialogueKey, showChatInput, showQuest, showMinigame, showGrading, showQuestResult,
     showShop, showSettings, showHelp, showMedals,
   };
 })();

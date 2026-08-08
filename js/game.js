@@ -102,12 +102,14 @@
       checkMedals();
       save();
       UI.updateHUD(state);
-    });
+    }, state.name);
     return true;
   }
 
   // ---------- 퀘스트 진행 ----------
-  const MAIN_QUESTS = QUESTS.filter((q) => q.type === "main");
+  // 메인 스토리 진행 순서에는 일반 카피 퀘스트("main")뿐 아니라 미니게임형 중간보스("minigame")도
+  // 포함된다 — nextMainQuest()가 순서대로 하나씩 내주는 대상이라, 여기서 빠지면 건너뛰어진다.
+  const MAIN_QUESTS = QUESTS.filter((q) => q.type === "main" || q.type === "minigame");
 
   function nextMainQuest() {
     return MAIN_QUESTS.find((q) => !state.completed[q.id]) || null;
@@ -122,8 +124,10 @@
   function availableQuestsFor(npc) {
     const list = [];
     const main = nextMainQuest();
-    // 메인 퀘스트는 튜토리얼(오팀장 면접) 이후부터
-    if (main && main.npcId === npc.id && state.flags.tutorialDone) list.push(main);
+    // 메인 퀘스트는 튜토리얼(오팀장 면접) 이후부터, 그리고 레벨 조건을 채워야 받을 수 있다
+    if (main && main.npcId === npc.id && state.flags.tutorialDone && (!main.minLevel || state.level >= main.minLevel)) {
+      list.push(main);
+    }
     QUESTS.forEach((q) => {
       if (q.npcId === npc.id && subQuestAvailable(q)) list.push(q);
     });
@@ -200,6 +204,49 @@
     });
   }
 
+  // ---------- 미니게임 (시간 제한 4지선다 — 중간보스 등 별도 유형의 메인 퀘스트) ----------
+  function submitMinigame(quest, npc, correct, total) {
+    const pass = correct >= (quest.passCount || Math.ceil(total / 2));
+    const score = Math.round((correct / total) * 100);
+    state.bestScore = Math.max(state.bestScore, score);
+    let leveledUp = false;
+    let newMedals = [];
+    if (pass && !state.completed[quest.id]) {
+      state.completed[quest.id] = { score, attempts: (state.attempts[quest.id] || 0) + 1 };
+      state.points += quest.reward.points;
+      state.totalEarned += quest.reward.points;
+      leveledUp = addXp(quest.reward.xp);
+      newMedals = checkMedals(true);
+    }
+    state.attempts[quest.id] = (state.attempts[quest.id] || 0) + 1;
+    save();
+    UI.updateHUD(state);
+    const result = {
+      score,
+      pass,
+      feedback: pass
+        ? total + "문제 중 " + correct + "문제. 시간 안에 정확히 골라냈네요."
+        : total + "문제 중 " + correct + "문제밖에 못 골랐어요. 아직 순발력이 부족해요.",
+      reward: pass ? quest.reward : null,
+      leveledUp,
+      newMedals,
+    };
+    UI.showQuestResult(quest, npc, result, {
+      onRetry: () => openQuest(quest, npc),
+      onClose: () => {
+        if (pass) {
+          if (!fireStory({ type: "questDone", quest: quest.id })) {
+            const main = nextMainQuest();
+            if (main) {
+              const owner = NPCS.find((n) => n.id === main.npcId);
+              UI.toast("다음 의뢰: " + owner.name + " (" + MAPS[owner.map].name + ")", true);
+            }
+          }
+        }
+      },
+    });
+  }
+
   // ---------- 연습 마당 즉흥 훈련 (풀숲 인카운터) ----------
   const PRACTICE_NPC = {
     id: "practice", name: "골목의 감", title: "즉흥 훈련", color: "#8aa06a",
@@ -246,27 +293,42 @@
   }
 
   // ---------- NPC 상호작용 ----------
+  function openQuest(quest, npc) {
+    if (quest.type === "minigame") {
+      UI.showMinigame(quest, npc, { onDone: (correct, total) => submitMinigame(quest, npc, correct, total) });
+      return;
+    }
+    UI.showQuest(quest, npc, state, {
+      onCoffee: () => {
+        if (state.coffees > 0) {
+          state.coffees -= 1;
+          save();
+          return true;
+        }
+        return false;
+      },
+      onSubmit: (text) => submitCopy(quest, npc, text),
+    });
+  }
+
+  function startQuest(quest, npc) {
+    // 영웅서기식 상호 대화: 정식 미션을 던지기 전에, NPC와 주인공이 짧게 서로 말을 주고받는다.
+    if (quest.intro && quest.intro.length) {
+      UI.playStory(quest.intro, () => openQuest(quest, npc), state.name);
+    } else {
+      openQuest(quest, npc);
+    }
+  }
+
   function talkTo(npc) {
     const quests = availableQuestsFor(npc);
     const options = [];
 
     quests.forEach((quest) => {
       options.push({
-        label: (quest.type === "sub" ? "🔖 " : "📋 ") + quest.title,
-        primary: quest.type === "main",
-        onClick: () => {
-          UI.showQuest(quest, npc, state, {
-            onCoffee: () => {
-              if (state.coffees > 0) {
-                state.coffees -= 1;
-                save();
-                return true;
-              }
-              return false;
-            },
-            onSubmit: (text) => submitCopy(quest, npc, text),
-          });
-        },
+        label: (quest.type === "sub" ? "🔖 " : quest.type === "minigame" ? "⚡ " : "📋 ") + quest.title,
+        primary: quest.type !== "sub",
+        onClick: () => startQuest(quest, npc),
       });
     });
     options.push({ label: "💬 잡담" + (AI.hasKey() ? "" : " (기본)"), onClick: () => startChat(npc) });
@@ -281,7 +343,14 @@
       const main = nextMainQuest();
       if (main && state.flags.tutorialDone) {
         const owner = NPCS.find((n) => n.id === main.npcId);
-        greeting = owner.id === npc.id ? "어서 와!" : "지금은 부탁할 게 없네. " + owner.name + "이(가) 사람을 찾던데?";
+        if (owner.id === npc.id && main.minLevel && state.level < main.minLevel) {
+          // 레벨 조건 미달: 이 NPC가 바로 다음 메인 퀘스트의 주인이지만 아직 못 준다
+          greeting = "…아직은 좀 이른 것 같은데. 최소 레벨 " + main.minLevel + "은 돼야 맡길 수 있을 것 같아. 연습 마당에서 실력 좀 더 쌓고 와.";
+        } else if (owner.id === npc.id) {
+          greeting = "어서 와!";
+        } else {
+          greeting = npc.redirect ? npc.redirect(owner.name) : "지금은 부탁할 게 없네. " + owner.name + "이(가) 사람을 찾던데?";
+        }
       } else if (!main) {
         greeting = "골목을 지켜줘서 고마워. 덕분에 오늘도 영업 중이야!";
       } else {
