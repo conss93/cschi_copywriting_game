@@ -347,13 +347,23 @@ function drawTile(ctx, code, tx, ty, time) {
   }
 
   // ---- 실외 타일 ----
+  // 잔디 바탕: 단색이 아니라 두 톤의 유기적인 얼룩 + 짧은 잎 텍스처를 겹쳐서 밋밋함을 줄인다.
   ctx.fillStyle = "#7fb069";
   ctx.fillRect(px, py, TILE, TILE);
-  for (let i = 0; i < 4; i++) {
-    if (noise(tx, ty, i) > 0.6) {
-      ctx.fillStyle = "#6fa059";
-      ctx.fillRect(px + Math.floor(noise(tx, ty, i + 10) * 28), py + Math.floor(noise(tx, ty, i + 20) * 28), 4, 4);
-    }
+  ctx.fillStyle = "#739f5f";
+  for (let i = 0; i < 3; i++) {
+    const bx = px + Math.floor(noise(tx, ty, i) * 22) + 4;
+    const by = py + Math.floor(noise(tx, ty, i + 8) * 22) + 4;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, 6, 3.5, noise(tx, ty, i + 15) * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#8fc07a";
+  for (let i = 0; i < 5; i++) {
+    if (noise(tx, ty, i + 20) < 0.5) continue;
+    const gx = px + Math.floor(noise(tx, ty, i + 30) * 29);
+    const gy = py + Math.floor(noise(tx, ty, i + 40) * 29);
+    ctx.fillRect(gx, gy, 1, 3);
   }
 
   switch (code) {
@@ -364,11 +374,29 @@ function drawTile(ctx, code, tx, ty, time) {
         ctx.fillStyle = "#c8b898";
         ctx.fillRect(px + Math.floor(noise(tx, ty, i) * 26), py + Math.floor(noise(tx, ty, i + 5) * 26), 5, 4);
       }
+      // 자갈 알갱이 몇 개를 더해 아스팔트가 아니라 흙길 느낌을 살린다
+      ctx.fillStyle = "#b8a888";
+      for (let i = 0; i < 4; i++) {
+        ctx.fillRect(px + Math.floor(noise(tx, ty, i + 50) * 28), py + Math.floor(noise(tx, ty, i + 60) * 28), 2, 2);
+      }
+      // 잔디와 맞닿는 가장자리를 살짝 어둡게 눌러줘서 길의 경계가 또렷해지게 한다
+      ctx.fillStyle = "rgba(110, 90, 60, 0.15)";
+      if (tileAt(tx, ty - 1) !== "r") ctx.fillRect(px, py, TILE, 3);
+      if (tileAt(tx, ty + 1) !== "r") ctx.fillRect(px, py + TILE - 3, TILE, 3);
+      if (tileAt(tx - 1, ty) !== "r") ctx.fillRect(px, py, 3, TILE);
+      if (tileAt(tx + 1, ty) !== "r") ctx.fillRect(px + TILE - 3, py, 3, TILE);
       break;
     }
     case "T": { // 나무
+      // 접지 그림자: 나무가 땅에 뿌리내린 것처럼 보이게 한다
+      ctx.fillStyle = "rgba(20, 40, 20, 0.18)";
+      ctx.beginPath();
+      ctx.ellipse(px + 16, py + 29, 11, 3.2, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = "#6a4a32";
       ctx.fillRect(px + 13, py + 18, 6, 12);
+      ctx.fillStyle = "#523822";
+      ctx.fillRect(px + 13, py + 18, 2, 12);
       ctx.fillStyle = "#3e7a3e";
       ctx.beginPath();
       ctx.arc(px + 16, py + 12, 12, 0, Math.PI * 2);
@@ -376,6 +404,10 @@ function drawTile(ctx, code, tx, ty, time) {
       ctx.fillStyle = "#4e8e4a";
       ctx.beginPath();
       ctx.arc(px + 12, py + 9, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#5fa15c";
+      ctx.beginPath();
+      ctx.arc(px + 19, py + 7, 4, 0, Math.PI * 2);
       ctx.fill();
       break;
     }

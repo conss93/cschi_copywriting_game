@@ -552,8 +552,8 @@ textarea {
 /* A버튼: 화면 맨 구석 대신 엄지가 자연스럽게 닿는 안쪽/위쪽으로 옮김 */
 #pad-action {
   position: absolute;
-  right: 30px;
-  bottom: 86px;
+  right: 46px;
+  bottom: 112px;
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -588,7 +588,7 @@ button, .btn, .dlg-btn, .hud-btn, .title-btn { touch-action: manipulation; }
   .dlg-btn { padding: 8px 10px; font-size: 0.85rem; }
   #joystick { width: 82px; height: 82px; margin-left: -41px; margin-top: -41px; }
   #joystick-knob { width: 38px; height: 38px; margin-left: -19px; margin-top: -19px; }
-  #pad-action { width: 54px; height: 54px; right: 22px; bottom: 76px; }
+  #pad-action { width: 54px; height: 54px; right: 36px; bottom: 98px; }
   .result-score { font-size: 1.6rem; }
   #intro-text { font-size: 0.98rem; line-height: 1.9; }
 }
