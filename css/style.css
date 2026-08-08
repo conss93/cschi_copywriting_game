@@ -242,6 +242,17 @@ textarea {
   background: #7fb069;
 }
 
+/* 대화창 바깥 탭으로 진행하기: #dialogue(z-index 10)보다 아래, 캔버스/터치컨트롤(z-index 6)보다
+   위에 놓여서 대화창 바깥 영역의 탭만 가로챈다. 옵션이 1개(다음/확인)뿐일 때만 active로 켜진다. */
+#dialogue-tap-catcher {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  touch-action: manipulation;
+}
+#dialogue-tap-catcher.active { pointer-events: auto; }
+
 /* ---------- 대화창 ---------- */
 #dialogue {
   position: absolute;
@@ -575,6 +586,28 @@ textarea {
 }
 @media (pointer: coarse) {
   #touch-controls { display: block; }
+}
+
+/* A버튼 드래그 위치 조정 모드: 안내문 + 완료 버튼을 화면 상단에 띄운다 */
+#drag-mode-hint {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(20, 14, 26, 0.94);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+#drag-mode-hint p { margin: 0; font-size: 0.82rem; }
+#pad-action.dragging {
+  opacity: 0.75;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* ---------- 모바일 최적화 ---------- */

@@ -95,6 +95,16 @@
         </div>
         <button id="pad-action">A</button>
       </div>
+
+      <!-- 대화 진행: 모바일에서 대화창 바깥 아무 곳이나 눌러도 다음으로 넘어가게 하는 투명 레이어
+           (옵션이 1개뿐인 "다음/확인" 진행 대사일 때만 활성화된다) -->
+      <div id="dialogue-tap-catcher"></div>
+
+      <!-- A버튼 드래그 위치 조정 모드 -->
+      <div id="drag-mode-hint" class="hidden">
+        <p>✋ A버튼을 원하는 위치로 드래그하세요</p>
+        <button id="btn-drag-done" class="btn primary small">완료</button>
+      </div>
     </div>
   </main>
 
@@ -154,12 +164,11 @@
       <hr class="settings-divider" />
       <p class="modal-sub">🎮 모바일 조작 설정</p>
       <div class="setting-row">
-        <label for="input-pad-right">A버튼 좌우 위치</label>
-        <input id="input-pad-right" type="range" min="20" max="160" step="2" />
-      </div>
-      <div class="setting-row">
-        <label for="input-pad-bottom">A버튼 상하 위치</label>
-        <input id="input-pad-bottom" type="range" min="60" max="220" step="2" />
+        <label>A버튼 위치</label>
+        <div class="btn-row tight">
+          <button id="btn-drag-position" class="btn secondary small">✋ 드래그로 위치 조정</button>
+          <button id="btn-reset-position" class="btn secondary small">기본값으로</button>
+        </div>
       </div>
       <div class="setting-row">
         <label>조이스틱 활성 영역</label>

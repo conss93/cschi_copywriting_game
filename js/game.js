@@ -512,6 +512,8 @@
   function applyControlSettings() {
     const actBtn = document.getElementById("pad-action");
     if (actBtn) {
+      actBtn.style.left = "";
+      actBtn.style.top = "";
       if (state.controlsCustomized) {
         actBtn.style.right = state.padRight + "px";
         actBtn.style.bottom = state.padBottom + "px";
@@ -524,6 +526,84 @@
     if (zone) {
       zone.style.width = state.joystickFull ? "100%" : "60%";
     }
+  }
+
+  // A버튼 드래그 위치 조정 모드: 슬라이더 대신 버튼 자체를 손가락으로 직접 끌어서 옮긴다.
+  // (현재 위치를 눈으로 보면서 옮길 수 있고, 화면 어디로든 자유롭게 배치할 수 있다)
+  let dragMode = false;
+  let dragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  function pointFromEvent(e) {
+    if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function startDrag(e) {
+    const actBtn = document.getElementById("pad-action");
+    if (!actBtn) return;
+    e.preventDefault();
+    dragging = true;
+    actBtn.classList.add("dragging");
+    const rect = actBtn.getBoundingClientRect();
+    const p = pointFromEvent(e);
+    dragOffsetX = p.x - rect.left;
+    dragOffsetY = p.y - rect.top;
+    actBtn.style.right = "";
+    actBtn.style.bottom = "";
+    actBtn.style.left = rect.left + "px";
+    actBtn.style.top = rect.top + "px";
+  }
+
+  function moveDrag(e) {
+    if (!dragging) return;
+    const actBtn = document.getElementById("pad-action");
+    if (!actBtn) return;
+    e.preventDefault();
+    const holder = document.getElementById("canvas-holder");
+    const holderRect = holder.getBoundingClientRect();
+    const p = pointFromEvent(e);
+    const btnW = actBtn.offsetWidth;
+    const btnH = actBtn.offsetHeight;
+    let left = p.x - dragOffsetX - holderRect.left;
+    let top = p.y - dragOffsetY - holderRect.top;
+    left = Math.max(4, Math.min(holderRect.width - btnW - 4, left));
+    top = Math.max(4, Math.min(holderRect.height - btnH - 4, top));
+    actBtn.style.left = left + "px";
+    actBtn.style.top = top + "px";
+  }
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    const actBtn = document.getElementById("pad-action");
+    if (!actBtn) return;
+    actBtn.classList.remove("dragging");
+    const holder = document.getElementById("canvas-holder");
+    const holderRect = holder.getBoundingClientRect();
+    const btnRect = actBtn.getBoundingClientRect();
+    state.padRight = Math.round(holderRect.right - btnRect.right);
+    state.padBottom = Math.round(holderRect.bottom - btnRect.bottom);
+    state.controlsCustomized = true;
+    applyControlSettings();
+    save();
+  }
+
+  function enterDragMode() {
+    dragMode = true;
+    const hint = document.getElementById("drag-mode-hint");
+    if (hint) hint.classList.remove("hidden");
+    document.getElementById("btn-drag-done").onclick = exitDragMode;
+  }
+
+  function exitDragMode() {
+    dragMode = false;
+    dragging = false;
+    const actBtn = document.getElementById("pad-action");
+    if (actBtn) actBtn.classList.remove("dragging");
+    const hint = document.getElementById("drag-mode-hint");
+    if (hint) hint.classList.add("hidden");
   }
 
   function bindJoystick() {
@@ -950,17 +1030,12 @@
     document.getElementById("btn-medals").addEventListener("click", () => UI.showMedals(state));
     document.getElementById("btn-collection").addEventListener("click", () => UI.showCollection(state));
     document.getElementById("btn-settings").addEventListener("click", () => {
-      const actBtn = document.getElementById("pad-action");
-      const computed = actBtn ? getComputedStyle(actBtn) : null;
-      const curRight = state.controlsCustomized || !computed ? state.padRight : parseInt(computed.right, 10);
-      const curBottom = state.controlsCustomized || !computed ? state.padBottom : parseInt(computed.bottom, 10);
       UI.showSettings(
-        { padRight: curRight, padBottom: curBottom, joystickFull: state.joystickFull },
+        { joystickFull: state.joystickFull },
         {
-          onPadChange: (right, bottom) => {
-            state.controlsCustomized = true;
-            state.padRight = right;
-            state.padBottom = bottom;
+          onDragPosition: () => enterDragMode(),
+          onResetPosition: () => {
+            state.controlsCustomized = false;
             applyControlSettings();
             save();
           },
@@ -980,8 +1055,20 @@
     bindJoystick();
     const actBtn = document.getElementById("pad-action");
     if (actBtn) {
-      actBtn.addEventListener("touchstart", (e) => { e.preventDefault(); if (!UI.isModalOpen()) interact(); }, { passive: false });
-      actBtn.addEventListener("mousedown", (e) => { e.preventDefault(); if (!UI.isModalOpen()) interact(); });
+      actBtn.addEventListener("touchstart", (e) => {
+        if (dragMode) { startDrag(e); return; }
+        e.preventDefault();
+        if (!UI.isModalOpen()) interact();
+      }, { passive: false });
+      actBtn.addEventListener("mousedown", (e) => {
+        if (dragMode) { startDrag(e); return; }
+        e.preventDefault();
+        if (!UI.isModalOpen()) interact();
+      });
+      document.addEventListener("touchmove", moveDrag, { passive: false });
+      document.addEventListener("mousemove", moveDrag);
+      document.addEventListener("touchend", endDrag);
+      document.addEventListener("mouseup", endDrag);
     }
 
     requestAnimationFrame(loop);

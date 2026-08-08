@@ -25,6 +25,8 @@ const UI = (function () {
   function closeModals() {
     document.querySelectorAll(".modal, #dialogue").forEach((m) => m.classList.add("hidden"));
     modalOpen = false;
+    const catcher = $("#dialogue-tap-catcher");
+    if (catcher) { catcher.classList.remove("active"); catcher.onpointerdown = null; }
   }
 
   function toast(msg, long) {
@@ -232,6 +234,23 @@ const UI = (function () {
     });
     $("#dlg-hint").classList.toggle("hidden", (options || []).length === 0);
     setDlgFocus(0);
+
+    // [모바일 한정] 진행 옵션이 "다음/확인" 1개뿐일 때는 대화창 바깥을 눌러도 진행되게 한다.
+    // 선택지가 여러 개인 메뉴(잡담/퀘스트 선택 등)에서는 어떤 걸 고를지 모호해지므로 켜지 않는다.
+    const catcher = $("#dialogue-tap-catcher");
+    if (catcher) {
+      const isMobile = window.matchMedia("(pointer: coarse)").matches;
+      if (isMobile && options && options.length === 1) {
+        catcher.classList.add("active");
+        catcher.onpointerdown = (e) => {
+          e.preventDefault();
+          options[0].onClick();
+        };
+      } else {
+        catcher.classList.remove("active");
+        catcher.onpointerdown = null;
+      }
+    }
   }
 
   // AI 응답 대기 중임을 분명히 보여주는 전용 표시 ("…"만 뜨면 멈춘 것처럼 보여 오해할 수 있다)
@@ -246,6 +265,8 @@ const UI = (function () {
       '이(가) 답장을 쓰는 중<span class="dlg-dots"><span>.</span><span>.</span><span>.</span></span></span>';
     $("#dlg-menu").innerHTML = "";
     $("#dlg-hint").classList.add("hidden");
+    const catcher = $("#dialogue-tap-catcher");
+    if (catcher) { catcher.classList.remove("active"); catcher.onpointerdown = null; }
   }
 
   // 대화창이 열려 있을 때 방향키/숫자/Enter로 선택지를 넘긴다 (마우스 클릭 없이도 진행 가능)
@@ -542,12 +563,11 @@ const UI = (function () {
 
     // ---- 모바일 조작 설정 ----
     if (controls && handlers) {
-      const padRight = $("#input-pad-right");
-      const padBottom = $("#input-pad-bottom");
-      padRight.value = controls.padRight;
-      padBottom.value = controls.padBottom;
-      padRight.oninput = () => handlers.onPadChange(Number(padRight.value), Number(padBottom.value));
-      padBottom.oninput = () => handlers.onPadChange(Number(padRight.value), Number(padBottom.value));
+      $("#btn-drag-position").onclick = () => {
+        closeModals();
+        handlers.onDragPosition();
+      };
+      $("#btn-reset-position").onclick = () => handlers.onResetPosition();
 
       const btnLeft = $("#btn-joystick-left");
       const btnFull = $("#btn-joystick-full");
