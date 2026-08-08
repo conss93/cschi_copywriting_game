@@ -314,6 +314,56 @@ textarea {
 }
 .count-row { text-align: right; color: var(--dim); font-size: 0.82rem; margin-top: 4px; }
 
+/* ---------- 카피 작성 영역: 클립보드에 끼운 메모지 느낌 ---------- */
+.paper-wrap { position: relative; margin-top: 24px; }
+.paper-wrap::before { /* 집게 클립 몸체 */
+  content: "";
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 78px;
+  height: 22px;
+  background: linear-gradient(180deg, #dcdce2, #98989f 70%, #85858c);
+  border: 1px solid #6c6c73;
+  border-radius: 5px;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+.paper-wrap::after { /* 클립이 종이를 누르는 홈 */
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 9px;
+  background: #6c6c73;
+  border-radius: 50%;
+  z-index: 3;
+}
+#q-input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 130px;
+  padding: 18px 16px 12px 28px;
+  border: none;
+  border-radius: 3px 3px 9px 9px;
+  background-color: #fbf3dc;
+  background-image:
+    linear-gradient(90deg, transparent 18px, #d99a9a 18px, #d99a9a 19px, transparent 19px),
+    repeating-linear-gradient(180deg, #fbf3dc 0, #fbf3dc 27px, #e3d6ac 28px);
+  color: #362c1c;
+  font-size: 1.02rem;
+  line-height: 28px;
+  font-family: "Gaegu", "Nanum Gothic", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  resize: vertical;
+}
+#q-input::placeholder { color: #a8946a; }
+#q-input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .grading-anim { text-align: center; padding: 30px 0; color: var(--dim); animation: pulse 1.2s infinite; }
 
 .result-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }

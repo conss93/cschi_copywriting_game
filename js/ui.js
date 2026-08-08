@@ -361,9 +361,11 @@ const UI = (function () {
       result.checks.forEach((c) => ul.appendChild(el("li", c.pass ? "ok" : "no", (c.pass ? "✅ " : "❌ ") + c.desc)));
       box.appendChild(ul);
     }
-    // '프로의 정답'은 합격했을 때만 보여준다 — 불합격 상태에서 보여주면 다시 쓰기 후
-    // 그대로 베껴 넣는 우회로가 생겨버려서, 재도전 중에는 원칙(tip)만 힌트로 준다.
-    if (result.revised && result.pass) {
+    // '프로의 정답'은 메인/서브 의뢰는 합격했을 때만 보여준다 — 불합격 상태에서 보여주면
+    // 다시 쓰기 후 그대로 베껴 넣는 우회로가 생기기 때문. 다만 연습 마당의 즉흥 훈련은
+    // 스토리 진행과 무관한 반복 학습이므로, 합격 여부와 상관없이 매번 정답을 보여줘서
+    // 플래시카드처럼 바로 비교하며 감을 익히게 한다.
+    if (result.revised && (result.pass || quest.type === "practice")) {
       const rv = el("div", "result-revised");
       rv.appendChild(el("p", "fb-npc", "🖋️ 프로는 이렇게 씁니다"));
       rv.appendChild(el("p", "revised-copy", "“" + result.revised + "”"));
