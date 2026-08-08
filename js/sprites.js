@@ -610,3 +610,49 @@ function drawSign(ctx, col, row, text) {
   ctx.fillStyle = "#f0d060";
   ctx.fillText(text, px + 4, py + 8);
 }
+
+// ---------- 배경 동물 ----------
+// 강아지: 타일 기반으로 배회하는 작은 사색 실루엣. moving일 때 다리를 살짝 까닥인다.
+function drawDog(ctx, px, py, time, moving) {
+  const bob = moving ? Math.round(Math.sin(time / 90) * 1.2) : 0;
+  const cx = px + TILE / 2;
+  const cy = py + TILE / 2 + 6;
+  ctx.fillStyle = "rgba(10,6,14,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(cx, py + TILE - 4, 8, 2.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#a8703c";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + bob, 8, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 7, cy - 2 + bob, 4.5, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#8a5a2c";
+  ctx.beginPath();
+  ctx.ellipse(cx + 8, cy - 5 + bob, 2, 2.6, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  const wag = Math.sin(time / 130) * 4;
+  ctx.strokeStyle = "#8a5a2c";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 7, cy + bob);
+  ctx.lineTo(cx - 10, cy - 4 + wag + bob);
+  ctx.stroke();
+}
+
+// 새: 지형과 무관하게 자리(anchor) 주변을 자유롭게 날아다닌다.
+function drawBird(ctx, c, time) {
+  const range = (c.range || 3) * TILE;
+  const speed = c.speed || 0.0006;
+  const t = time * speed + (c.seed || 0);
+  const px = c.x * TILE + Math.sin(t) * range;
+  const py = c.y * TILE + Math.sin(t * 2.1) * 8 - 14;
+  const flap = Math.sin(time / 90) * 4;
+  ctx.strokeStyle = "#3a3a44";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(px - 5, py + flap * 0.4);
+  ctx.quadraticCurveTo(px, py - 3 - Math.abs(flap), px + 5, py + flap * 0.4);
+  ctx.stroke();
+}

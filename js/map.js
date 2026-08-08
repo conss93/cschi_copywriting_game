@@ -16,19 +16,19 @@ const MAPS = {
     name: "글빨골목",
     rows: [
       "TTTTTTTTTTTTTTTTTTTTTTTT", // 0
-      "T.F....BBBB...BBBB..F..T", // 1  소금상회 / 살림살이
-      "T......BBDB...BBDB.....T", // 2
+      "T.F.F..BBBB.F.BBBB.FF..T", // 1  소금상회 / 살림살이
+      "T......BBDB.F.BBDBF....T", // 2
       "T..rrrrrrrrrrrrrrrrrr..T", // 3
-      "T..r...............Fr..T", // 4
+      "T..r..F....F....F..Fr..T", // 4
       "T..r..BBBB...BBBB...r..T", // 5  채리로스터스 / 스테이여기
       "T..r..BBEB...BBDB...r..T", // 6  채리로스터스 입구 E(8,6) — 실내로 들어갈 수 있다
       "T..rrrrrrrrrrrrrrrrrrrrr", // 7  → 동쪽 끝(23,7)에서 시장길로
-      "T..r......WW....LLLLr..T", // 8  연습 마당(풀숲) 시작
-      "T..r..b...WW...bLLLLr..T", // 9
+      "T..r.b...FWWF...LLLLr..T", // 8  연습 마당(풀숲) 시작
+      "T..rF.b...WW...bLLLLrF.T", // 9
       "T.BBBB.........BBBB.r..T", // 10 진심반찬 / 골목기획
       "T.BBDB.........BBEB.r..T", // 11 골목기획 입구 E(17,11)
       "T..rrrrrrrrrrrrrrrrrr..T", // 12
-      "T..r....BBDB.......Fr..T", // 13 편의점 카피24 (문 10,13)
+      "T..rF...BBDB...F...FrF.T", // 13 편의점 카피24 (문 10,13)
       "T..rrrrrrrrrrrrrrrrrr..T", // 14
       "TTTTTTTTTTTTTTTTTTTTTTTT", // 15
     ],
@@ -73,14 +73,14 @@ const MAPS = {
     name: "시장길",
     rows: [
       "TTTTTTTTTTTTTTTTTTTTTTTT", // 0
-      "T....BBBB....BBBB......T", // 1  한송이플라워 / 황금붕어빵
+      "T...FBBBB.F..BBBB.F....T", // 1  한송이플라워 / 황금붕어빵
       "T....BBDB....BBDB......T", // 2
       "T..rrrrrrrrrrrrrrrrrr..T", // 3
-      "T..r................r..T", // 4
+      "TFFr....F....F....F.r..T", // 4
       "T..r..b..........b..r..T", // 5
-      "T..r................r..T", // 6
+      "T..rF.....b......F..r..T", // 6
       "rrrrr...............r..T", // 7  ← 서쪽 끝(0,7)에서 마을로
-      "T..r................r..T", // 8
+      "T.Fr...............Fr..T", // 8
       "T..r....SSSS........r..T", // 9  글빨장터 무대
       "T..r....SSSS...MMMMMr..T", // 10 몰팩토리 공사펜스
       "T..r...........MMMMMr..T", // 11

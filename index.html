@@ -151,6 +151,23 @@
         키는 이 브라우저의 localStorage에만 저장되며 어떤 서버로도 전송되지 않습니다 (Anthropic API 호출 제외).
         키 발급: <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>
       </p>
+      <hr class="settings-divider" />
+      <p class="modal-sub">🎮 모바일 조작 설정</p>
+      <div class="setting-row">
+        <label for="input-pad-right">A버튼 좌우 위치</label>
+        <input id="input-pad-right" type="range" min="20" max="160" step="2" />
+      </div>
+      <div class="setting-row">
+        <label for="input-pad-bottom">A버튼 상하 위치</label>
+        <input id="input-pad-bottom" type="range" min="60" max="220" step="2" />
+      </div>
+      <div class="setting-row">
+        <label>조이스틱 활성 영역</label>
+        <div class="btn-row tight">
+          <button id="btn-joystick-left" class="btn secondary small">왼쪽만</button>
+          <button id="btn-joystick-full" class="btn secondary small">화면 전체</button>
+        </div>
+      </div>
       <div class="btn-row">
         <button id="btn-apikey-save" class="btn primary">저장 & 연결 테스트</button>
         <button id="btn-settings-close" class="btn ghost">닫기</button>

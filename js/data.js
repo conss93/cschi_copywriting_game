@@ -84,7 +84,7 @@ const NPCS = [
   },
   {
     id: "oh", name: "오팀장", title: "대행사 '골목기획' 팀장",
-    map: "office", x: 11, y: 5, sprite: "director", color: "#c25c5c",
+    map: "office", x: 11, y: 5, sprite: "director", color: "#c25c5c", noWander: true,
     persona:
       "당신은 '오팀장', 골목 마케팅 대행사 '골목기획'의 팀장이자 15년차 카피라이터다. 까다롭고 직설적인 멘토로, 어설픈 카피에는 가차없지만 근거를 들어 정확하게 지적한다. 존댓말이지만 날카롭다. 성장하는 후배에게는 진심 어린 조언을 아끼지 않는다. 몰팩토리의 골목 재개발에 맞서 '골목 축제'를 기획하고 있다.",
     fallbackChat: [
@@ -146,7 +146,7 @@ const NPCS = [
   // ---- 채리로스터스 실내 손님 (퀘스트 없이 잡담만 가능한 분위기용 NPC) ----
   {
     id: "cafeGuest1", name: "재택러 하늬", title: "카페 단골 (프리랜서)",
-    map: "cafe", x: 9, y: 7, sprite: "laptopper", color: "#5c7ae0",
+    map: "cafe", x: 9, y: 7, sprite: "laptopper", color: "#5c7ae0", noWander: true,
     persona:
       "당신은 '하늬', 채리로스터스에 매일 출근 도장을 찍는 프리랜서 디자이너다. 노트북을 펴놓고 일하는 중이며, 말투는 나른하고 여유롭다. 카페 와이파이와 콘센트 자리 확보에 진심이고, 골목 이야기에도 관심이 많지만 정작 카피 의뢰 같은 건 없다. 그냥 지나가듯 수다 떠는 걸 좋아한다.",
     fallbackChat: [
@@ -158,7 +158,7 @@ const NPCS = [
   },
   {
     id: "cafeGuest2", name: "책벌레 준", title: "카페 단골 (독서가)",
-    map: "cafe", x: 14, y: 7, sprite: "reader", color: "#c2905c",
+    map: "cafe", x: 14, y: 7, sprite: "reader", color: "#c2905c", noWander: true,
     persona:
       "당신은 '준', 채리로스터스 구석 자리에서 늘 책을 읽는 조용한 단골이다. 말수가 적고 차분하며, 문장 하나하나를 곱씹는 걸 좋아한다. 좋은 문장을 보면 나지막이 감탄하지만, 먼저 말을 거는 일은 드물다. 카피 의뢰는 없고, 그저 책과 커피를 즐기러 온다.",
     fallbackChat: [
@@ -1217,6 +1217,16 @@ const COLLECTIBLES = [
   { id: "stamp_market_pebble", map: "market", x: 11, y: 14, icon: "🪨", name: "행운의 조약돌", desc: "시장길 풀숲 한가운데 놓여 있던 매끈한 조약돌." },
   { id: "stamp_office_card", map: "office", x: 7, y: 9, icon: "📇", name: "빛바랜 명함", desc: "오팀장 사무실 구석에서 찾은, 다른 이름이 적힌 낡은 명함." },
   { id: "stamp_cafe_bean", map: "cafe", x: 10, y: 8, icon: "☕", name: "커피콩 뱃지", desc: "채리로스터스 안쪽 테이블에 놓여 있던 커피콩 모양 뱃지." },
+];
+
+// ---------- 배경 동물 (순수 장식 — 상호작용 없이 골목에 생기를 더한다) ----------
+const AMBIENT_CREATURES = [
+  { id: "dog_town1", map: "town", type: "dog", x: 5, y: 13, range: 2 },
+  { id: "dog_town2", map: "town", type: "dog", x: 20, y: 9, range: 2 },
+  { id: "dog_market1", map: "market", type: "dog", x: 5, y: 12, range: 2 },
+  { id: "bird_town1", map: "town", type: "bird", x: 10, y: 3, range: 4, speed: 0.0005, seed: 0 },
+  { id: "bird_town2", map: "town", type: "bird", x: 16, y: 10, range: 3, speed: 0.0007, seed: 2 },
+  { id: "bird_market1", map: "market", type: "bird", x: 10, y: 5, range: 4, speed: 0.0006, seed: 1 },
 ];
 
 // ---------- 업적 메달 (16종) ----------

@@ -27,6 +27,10 @@
     affinity: {}, // npcId -> 잡담 횟수 (친밀도)
     medals: [],
     stamps: [], // 수집한 골목 수집품 id 목록
+    padRight: 62, // A버튼 우측 여백(px) — 설정에서 직접 옮기기 전까지는 기본 CSS(반응형)를 따른다
+    padBottom: 112, // A버튼 하단 여백(px)
+    controlsCustomized: false, // true가 되면 padRight/padBottom을 인라인 스타일로 강제 적용
+    joystickFull: false, // false=화면 왼쪽만, true=화면 전체에서 스틱 사용 가능
     flags: {}, // 스토리 플래그 (tutorialDone, marketOpen, ending …)
     storyDone: [], // 재생 완료된 스토리 이벤트 id
     objective: "",
@@ -502,6 +506,26 @@
   // 아날로그 스틱: 손을 떼지 않고 드래그 방향을 바꿔가며 이동할 수 있게 한다.
   // (기존 4버튼 D패드는 위로 가다가 오른쪽으로 틀려면 손을 떼고 다시 눌러야 했다.)
   const DIR_VECTORS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+  // 설정에서 바꾼 A버튼 위치 / 조이스틱 활성 영역을 실제 DOM에 반영한다.
+  // 사용자가 아직 A버튼을 직접 옮긴 적 없으면(controlsCustomized=false) 기존 반응형
+  // CSS(화면 크기별 기본 위치)를 그대로 따르고, 인라인 스타일로 덮어쓰지 않는다.
+  function applyControlSettings() {
+    const actBtn = document.getElementById("pad-action");
+    if (actBtn) {
+      if (state.controlsCustomized) {
+        actBtn.style.right = state.padRight + "px";
+        actBtn.style.bottom = state.padBottom + "px";
+      } else {
+        actBtn.style.right = "";
+        actBtn.style.bottom = "";
+      }
+    }
+    const zone = document.getElementById("joystick-zone");
+    if (zone) {
+      zone.style.width = state.joystickFull ? "100%" : "60%";
+    }
+  }
+
   function bindJoystick() {
     const zone = document.getElementById("joystick-zone");
     const base = document.getElementById("joystick");
@@ -741,6 +765,88 @@
       else if (keys.ArrowLeft || keys.a) tryMove(-1, 0);
       else if (keys.ArrowRight || keys.d) tryMove(1, 0);
     }
+    tickWander(dt);
+    tickCreatures(dt);
+  }
+
+  // ---------- NPC/동물 배회(wander) ----------
+  const WANDER_RANGE = 1; // 원래 자리에서 벗어날 수 있는 최대 거리(타일)
+  const WANDER_STEP_MS = 320;
+
+  function tickWander(dt) {
+    npcsHere().forEach((npc) => {
+      if (npc.noWander) return;
+      if (!npc._home) npc._home = { x: npc.x, y: npc.y };
+      if (npc._moving) {
+        npc._progress = Math.min(1, (npc._progress || 0) + dt / WANDER_STEP_MS);
+        if (npc._progress >= 1) {
+          npc.x = npc._toX;
+          npc.y = npc._toY;
+          npc._moving = false;
+        }
+        return;
+      }
+      if (npc._wt == null) npc._wt = 1500 + Math.random() * 3000;
+      npc._wt -= dt;
+      if (npc._wt > 0) return;
+      npc._wt = 2200 + Math.random() * 3500;
+      const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+      const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+      const nx = npc.x + dx;
+      const ny = npc.y + dy;
+      if (Math.abs(nx - npc._home.x) > WANDER_RANGE || Math.abs(ny - npc._home.y) > WANDER_RANGE) return;
+      if (isSolid(nx, ny)) return;
+      if (npcsHere().some((o) => o !== npc && o.x === nx && o.y === ny)) return;
+      if (player.x === nx && player.y === ny) return;
+      npc._fromX = npc.x;
+      npc._fromY = npc.y;
+      npc._toX = nx;
+      npc._toY = ny;
+      npc._progress = 0;
+      npc._moving = true;
+      npc.face = dx === 1 ? "right" : dx === -1 ? "left" : dy === 1 ? "down" : "up";
+    });
+  }
+
+  // ---------- 배경 동물(강아지/새) — 순수 장식용, 상호작용 없음 ----------
+  function tickCreatures(dt) {
+    (AMBIENT_CREATURES || []).forEach((c) => {
+      if (c.map !== state.map) return;
+      if (!c._home) c._home = { x: c.x, y: c.y };
+      if (c.type === "bird") {
+        // 새는 지형 무시하고 하늘을 자유롭게 떠다닌다
+        c._t = (c._t || Math.random() * 1000) + dt / 1000;
+        return;
+      }
+      // 강아지: NPC와 비슷하게 지면을 돌아다니되 범위를 좀 더 넓게 쓴다
+      if (c._moving) {
+        c._progress = Math.min(1, (c._progress || 0) + dt / 420);
+        if (c._progress >= 1) {
+          c.x = c._toX;
+          c.y = c._toY;
+          c._moving = false;
+        }
+        return;
+      }
+      if (c._wt == null) c._wt = 800 + Math.random() * 2000;
+      c._wt -= dt;
+      if (c._wt > 0) return;
+      c._wt = 1200 + Math.random() * 2600;
+      const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+      const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+      const nx = c.x + dx;
+      const ny = c.y + dy;
+      const range = c.range || 3;
+      if (Math.abs(nx - c._home.x) > range || Math.abs(ny - c._home.y) > range) return;
+      if (isSolid(nx, ny)) return;
+      c._fromX = c.x;
+      c._fromY = c.y;
+      c._toX = nx;
+      c._toY = ny;
+      c._progress = 0;
+      c._moving = true;
+      c.face = dx === 1 ? "right" : dx === -1 ? "left" : dy === 1 ? "down" : "up";
+    });
   }
 
   function render(time) {
@@ -764,21 +870,36 @@
     currentMap().signs.forEach(([c, r, t]) => drawSign(ctx, c, r, t));
 
     npcsHere().forEach((npc) => {
-      const idleOffset = Math.sin(time / 700 + npc.x * 1.3) > 0.6 ? -1 : 0;
-      drawCharacter(ctx, npc.sprite, npc.x * TILE, npc.y * TILE, { moving: false, progress: 0, face: npc.face || "down", idleOffset }, null);
+      // 배회 중이면 이동 애니메이션 좌표를, 아니면 고정 좌표를 쓴다
+      const nx = npc._moving ? npc._fromX + (npc._toX - npc._fromX) * npc._progress : npc.x;
+      const ny = npc._moving ? npc._fromY + (npc._toY - npc._fromY) * npc._progress : npc.y;
+      const idleOffset = npc._moving ? 0 : Math.sin(time / 700 + npc.x * 1.3) > 0.6 ? -1 : 0;
+      drawCharacter(ctx, npc.sprite, nx * TILE, ny * TILE, { moving: !!npc._moving, progress: npc._progress || 0, face: npc.face || "down", idleOffset }, null);
       ctx.font = "10px 'Malgun Gothic', sans-serif";
       const label = npc.name;
       const lw = ctx.measureText(label).width + 8;
-      const lx = npc.x * TILE + TILE / 2 - lw / 2;
+      const lx = nx * TILE + TILE / 2 - lw / 2;
       ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.fillRect(lx, npc.y * TILE - 12, lw, 12);
+      ctx.fillRect(lx, ny * TILE - 12, lw, 12);
       ctx.fillStyle = "#fff";
-      ctx.fillText(label, lx + 4, npc.y * TILE - 3);
+      ctx.fillText(label, lx + 4, ny * TILE - 3);
       if (anyQuestAvailable(npc)) {
         ctx.font = "bold 14px sans-serif";
         ctx.fillStyle = "#f0d060";
         const blink = Math.sin(time / 300) > 0 ? "❗" : "❕";
-        ctx.fillText(blink, npc.x * TILE + TILE / 2 - 6, npc.y * TILE - 16);
+        ctx.fillText(blink, nx * TILE + TILE / 2 - 6, ny * TILE - 16);
+      }
+    });
+
+    // 배경 동물(강아지/새) — 순수 장식
+    (AMBIENT_CREATURES || []).forEach((c) => {
+      if (c.map !== state.map) return;
+      if (c.type === "bird") {
+        drawBird(ctx, c, time);
+      } else {
+        const cx = c._moving ? c._fromX + (c._toX - c._fromX) * c._progress : c.x;
+        const cy = c._moving ? c._fromY + (c._toY - c._fromY) * c._progress : c.y;
+        drawDog(ctx, cx * TILE, cy * TILE, time, !!c._moving);
       }
     });
 
@@ -828,10 +949,33 @@
 
     document.getElementById("btn-medals").addEventListener("click", () => UI.showMedals(state));
     document.getElementById("btn-collection").addEventListener("click", () => UI.showCollection(state));
-    document.getElementById("btn-settings").addEventListener("click", () => UI.showSettings());
+    document.getElementById("btn-settings").addEventListener("click", () => {
+      const actBtn = document.getElementById("pad-action");
+      const computed = actBtn ? getComputedStyle(actBtn) : null;
+      const curRight = state.controlsCustomized || !computed ? state.padRight : parseInt(computed.right, 10);
+      const curBottom = state.controlsCustomized || !computed ? state.padBottom : parseInt(computed.bottom, 10);
+      UI.showSettings(
+        { padRight: curRight, padBottom: curBottom, joystickFull: state.joystickFull },
+        {
+          onPadChange: (right, bottom) => {
+            state.controlsCustomized = true;
+            state.padRight = right;
+            state.padBottom = bottom;
+            applyControlSettings();
+            save();
+          },
+          onJoystickModeChange: (full) => {
+            state.joystickFull = full;
+            applyControlSettings();
+            save();
+          },
+        }
+      );
+    });
     document.getElementById("btn-title-back").addEventListener("click", () => {
       if (confirm("타이틀로 돌아갈까요? (진행은 저장되어 있어요)")) UI.backToTitle();
     });
+    applyControlSettings();
 
     bindJoystick();
     const actBtn = document.getElementById("pad-action");

@@ -518,7 +518,7 @@ const UI = (function () {
   }
 
   // ---------- 설정 (API 키) ----------
-  function showSettings() {
+  function showSettings(controls, handlers) {
     openModal("settings-modal");
     $("#input-apikey").value = AI.getKey();
     $("#apikey-status").textContent = AI.hasKey()
@@ -539,6 +539,27 @@ const UI = (function () {
         $("#apikey-status").textContent = "❌ 연결 실패: " + e.message;
       }
     };
+
+    // ---- 모바일 조작 설정 ----
+    if (controls && handlers) {
+      const padRight = $("#input-pad-right");
+      const padBottom = $("#input-pad-bottom");
+      padRight.value = controls.padRight;
+      padBottom.value = controls.padBottom;
+      padRight.oninput = () => handlers.onPadChange(Number(padRight.value), Number(padBottom.value));
+      padBottom.oninput = () => handlers.onPadChange(Number(padRight.value), Number(padBottom.value));
+
+      const btnLeft = $("#btn-joystick-left");
+      const btnFull = $("#btn-joystick-full");
+      const syncJoystickButtons = (full) => {
+        btnLeft.classList.toggle("active", !full);
+        btnFull.classList.toggle("active", full);
+      };
+      syncJoystickButtons(controls.joystickFull);
+      btnLeft.onclick = () => { syncJoystickButtons(false); handlers.onJoystickModeChange(false); };
+      btnFull.onclick = () => { syncJoystickButtons(true); handlers.onJoystickModeChange(true); };
+    }
+
     $("#btn-settings-close").onclick = () => closeModals();
   }
 

@@ -477,9 +477,16 @@ textarea {
 .fine-print { font-size: 0.75rem; color: var(--dim); }
 .fine-print a { color: var(--accent); }
 
+.settings-divider { border: none; border-top: 1px solid var(--panel-2); margin: 14px 0; }
+.setting-row { margin-bottom: 10px; }
+.setting-row label { display: block; font-size: 0.85rem; color: var(--dim); margin-bottom: 4px; }
+.setting-row input[type="range"] { width: 100%; accent-color: var(--accent); }
+.btn-row.tight { margin-top: 0; gap: 6px; }
+.btn.secondary.active { outline: 2px solid var(--gold); }
+
 #toast {
   position: fixed;
-  bottom: 28px;
+  top: 62px; /* HUD 바 아래로 내려서 버튼을 가리지 않게 */
   left: 50%;
   transform: translateX(-50%);
   background: rgba(20, 14, 26, 0.95);
@@ -584,6 +591,7 @@ button, .btn, .dlg-btn, .hud-btn, .title-btn { touch-action: manipulation; }
   /* iOS 자동 확대 방지: 입력 폰트 16px 이상 */
   input[type="text"], input[type="password"], textarea, .chat-input-row input { font-size: 16px; }
   #dialogue { padding: 10px 12px; left: 2%; right: 2%; bottom: 2%; }
+  #toast { top: 50px; font-size: 0.82rem; padding: 8px 14px; }
   #dlg-text { font-size: 0.9rem; }
   .dlg-btn { padding: 8px 10px; font-size: 0.85rem; }
   #joystick { width: 82px; height: 82px; margin-left: -41px; margin-top: -41px; }
