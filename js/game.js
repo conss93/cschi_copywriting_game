@@ -505,10 +505,23 @@
   // 뭉개지지 않고 또렷하게(레티나 대응 포함) 보이도록 한다. 게임 로직상의 좌표(TILE 단위)는 그대로 유지.
   function updateViewport() {
     const mobile = window.matchMedia("(max-width: 640px)").matches;
-    viewport = mobile ? { w: 8, h: 12 } : { w: 15, h: 10 };
+    const w = mobile ? 8 : 15; // 가로 타일 수는 기존처럼 화면 폭 기준으로 고정 (모바일=확대된 세로형)
+    const cssW = canvas.parentElement.clientWidth || canvas.clientWidth || w * TILE;
+    const tilePx = cssW / w; // 실제 화면에서 타일 한 칸이 차지할 CSS px
+
+    // 세로 타일 수는 실제 남은 화면 높이(HUD/목표 바를 뺀 나머지)에 맞춰 동적으로 계산한다.
+    // 고정값을 쓰면 화면이 짧은 기기(가로 모드 폰 등)에서 캔버스가 뷰포트 밖으로 밀려
+    // 방향키/버튼이 잘려 보이는 문제가 생기므로, 항상 화면 안에 들어오도록 맞춘다.
+    const hud = document.getElementById("hud");
+    const obj = document.getElementById("objective-bar");
+    const chromeH = (hud ? hud.offsetHeight : 0) + (obj ? obj.offsetHeight : 0);
+    const availH = Math.max(tilePx * 6, window.innerHeight - chromeH - 20);
+    const maxH = mobile ? 14 : 11;
+    const h = Math.max(6, Math.min(maxH, Math.floor(availH / tilePx)));
+
+    viewport = { w, h };
     vpPxW = viewport.w * TILE;
     vpPxH = viewport.h * TILE;
-    const cssW = canvas.parentElement.clientWidth || canvas.clientWidth || vpPxW;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const renderScale = Math.max(1, Math.round((cssW * dpr) / vpPxW));
     canvas.width = vpPxW * renderScale;
