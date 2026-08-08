@@ -60,14 +60,14 @@ const MAPS = {
       "T..r....SSSS...MMMMMr..T", // 10 몰팩토리 공사펜스
       "T..r...........MMMMMr..T", // 11
       "T..rrrrrrrrrrrrrrrrrr..T", // 12
-      "T......................T", // 13
-      "T..F...............F...T", // 14
+      "T........LLLLLL........T", // 13 연습 마당(풀숲) — 지나가면 즉흥 훈련이 걸릴 수 있다
+      "T..F.....LLLLLL.....F..T", // 14
       "TTTTTTTTTTTTTTTTTTTTTTTT", // 15
     ],
     signs: [
       [5, 1, "한송이플라워"], [13, 1, "황금붕어빵"],
       [8, 9, "글빨장터 무대"], [15, 10, "몰팩토리 공사장"],
-      [1, 6, "← 골목"],
+      [1, 6, "← 골목"], [9, 13, "🌱 연습 마당"],
     ],
     warps: [{ x: 0, y: 7, to: "town", tx: 22, ty: 7 }],
   },
@@ -96,6 +96,57 @@ const MAPS = {
     warps: [{ x: 11, y: 11, to: "town", tx: 17, ty: 12 }],
   },
 };
+
+// ---------- 건물 테마 ----------
+// 간판 텍스트를 키로, 건물마다 다른 색/스타일을 지정한다 (포켓몬/영웅서기풍으로 건물을 구분).
+const BUILDING_THEMES = {
+  "소금상회": { wall: "#caa06a", wallDark: "#a8834e", roof: "#8a4a30", roofDark: "#5e3220", trim: "#f4e6c8", window: "#5c3a22", style: "bakery" },
+  "살림살이": { wall: "#7fb8ae", wallDark: "#5f9a90", roof: "#48586a", roofDark: "#313e4c", trim: "#eaf6f4", window: "#26333a", style: "modern" },
+  "채리로스터스": { wall: "#e6a0ae", wallDark: "#c67e8c", roof: "#7a3a42", roofDark: "#552830", trim: "#fff0f2", window: "#3a2024", style: "cafe" },
+  "스테이여기": { wall: "#9aaee0", wallDark: "#7a8ec2", roof: "#33406a", roofDark: "#222b4a", trim: "#eef2ff", window: "#20263e", style: "guesthouse" },
+  "진심반찬": { wall: "#c9b184", wallDark: "#a8905e", roof: "#5c6a3a", roofDark: "#3e4926", trim: "#f2ead0", window: "#3a2e1a", style: "hanok" },
+  "골목기획": { wall: "#9098a6", wallDark: "#707886", roof: "#3a3e48", roofDark: "#24272e", trim: "#dfe4ea", window: "#1c2027", style: "office" },
+  "편의점 카피24": { wall: "#3a6fb0", wallDark: "#28568f", roof: "#e8b83c", roofDark: "#c2941f", trim: "#ffffff", window: "#173a5c", style: "conbini" },
+  "한송이플라워": { wall: "#e8b8cc", wallDark: "#cf95ac", roof: "#5a8a5e", roofDark: "#3d6640", trim: "#fff5f8", window: "#3a2c34", style: "flower" },
+  "황금붕어빵": { wall: "#e8a04c", wallDark: "#c6832e", roof: "#7a4020", roofDark: "#552c14", trim: "#fff2dc", window: "#3a2410", style: "stall" },
+};
+const DEFAULT_BUILDING_THEME = { wall: "#b0705a", wallDark: "#9a5e4a", roof: "#5a3a3a", roofDark: "#432a2a", trim: "#f0d8c0", window: "#3a2a24", style: "plain" };
+
+// 현재 맵의 (x,y) 타일이 어느 건물(테마)에 속하는지 캐시. 간판 위치에서 시작해 연결된
+// B/D/E 타일을 BFS로 채우는 방식이라, 맵 배열을 손으로 다시 세지 않아도 항상 정확하다.
+let buildingThemeGrid = null;
+let buildingThemeMapId = null;
+
+function computeBuildingThemes() {
+  const m = MAPS[currentMapId];
+  const rows = m.rows;
+  const isBuildingTile = (x, y) => x >= 0 && y >= 0 && x < MAP_W && y < MAP_H && "BDE".includes(rows[y][x]);
+  const grid = Array.from({ length: MAP_H }, () => new Array(MAP_W).fill(null));
+  m.signs.forEach(([sx, sy, text]) => {
+    const theme = BUILDING_THEMES[text];
+    if (!theme || !isBuildingTile(sx, sy) || grid[sy][sx]) return;
+    const queue = [[sx, sy]];
+    grid[sy][sx] = theme;
+    while (queue.length) {
+      const [cx, cy] = queue.shift();
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+        const nx = cx + dx, ny = cy + dy;
+        if (isBuildingTile(nx, ny) && !grid[ny][nx]) {
+          grid[ny][nx] = theme;
+          queue.push([nx, ny]);
+        }
+      });
+    }
+  });
+  buildingThemeGrid = grid;
+  buildingThemeMapId = currentMapId;
+}
+
+function themeAt(x, y) {
+  if (buildingThemeMapId !== currentMapId) computeBuildingThemes();
+  if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) return null;
+  return buildingThemeGrid[y][x] || null;
+}
 
 // 편의점 문 (마을에서 앞에 서서 스페이스)
 const SHOP_DOOR = { map: "town", x: 10, y: 13 };

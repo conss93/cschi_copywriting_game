@@ -281,7 +281,8 @@ const UI = (function () {
   // ---------- 퀘스트 창 ----------
   function showQuest(quest, npc, state, handlers) {
     openModal("quest-modal");
-    $("#q-title").textContent = (quest.type === "sub" ? "🔖 [서브] " : "📋 [메인] ") + quest.title;
+    const typeLabel = quest.type === "sub" ? "🔖 [서브] " : quest.type === "practice" ? "🌱 [훈련] " : "📋 [메인] ";
+    $("#q-title").textContent = typeLabel + quest.title;
     $("#q-npc").textContent = npc.name + " · " + npc.title;
     $("#q-npc").style.color = npc.color;
     $("#q-briefing").textContent = "“" + quest.briefing + "”";

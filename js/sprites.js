@@ -98,30 +98,48 @@ function drawCharacter(ctx, presetName, px, py, anim, outfitPalette) {
   const ox = (TILE - w) / 2;
   const oy = TILE - 13 * scale - bounce;
 
-  p.body.forEach((row, ry) => {
-    for (let rx = 0; rx < row.length; rx++) {
-      let ch = row[rx];
-      if (ch === ".") continue;
-      if (face === "up" && ch === "E") ch = "H"; // 뒷모습: 눈을 머리카락 색으로 가림
-      let legLift = 0;
-      if (moving && ry >= 11) {
-        const isLeftLeg = rx < row.length / 2;
-        if ((frame === 0 && !isLeftLeg) || (frame === 1 && isLeftLeg)) legLift = -1;
+  // 몸통을 그리는 한 패스. flatColor가 있으면 실루엣(테두리)용, 없으면 실제 색상으로 칠한다.
+  const paintBody = (offsetX, offsetY, flatColor) => {
+    p.body.forEach((row, ry) => {
+      for (let rx = 0; rx < row.length; rx++) {
+        let ch = row[rx];
+        if (ch === ".") continue;
+        if (face === "up" && ch === "E") ch = "H"; // 뒷모습: 눈을 머리카락 색으로 가림
+        let legLift = 0;
+        if (moving && ry >= 11) {
+          const isLeftLeg = rx < row.length / 2;
+          if ((frame === 0 && !isLeftLeg) || (frame === 1 && isLeftLeg)) legLift = -1;
+        }
+        ctx.fillStyle = flatColor || colors[ch] || "#f0f";
+        ctx.fillRect(ox + rx * scale + offsetX, oy + ry * scale + legLift + offsetY, scale, scale);
       }
-      ctx.fillStyle = colors[ch] || "#f0f";
-      ctx.fillRect(ox + rx * scale, oy + ry * scale + legLift, scale, scale);
-    }
-  });
+    });
+  };
+  // 검은 테두리 실루엣을 사방으로 1px씩 먼저 깔아, 포켓몬/영웅서기풍의 또렷한 윤곽선을 만든다.
+  const OUTLINE = "#221822";
+  paintBody(-1, 0, OUTLINE);
+  paintBody(1, 0, OUTLINE);
+  paintBody(0, -1, OUTLINE);
+  paintBody(0, 1, OUTLINE);
+  paintBody(0, 0, null);
 
   // 모자
   const hat = HATS[p.hat];
   if (hat) {
-    ctx.fillStyle = p.hatColor || "#fff";
-    hat.forEach((row, ry) => {
-      for (let rx = 0; rx < row.length; rx++) {
-        if (row[rx] === "A") ctx.fillRect(ox + rx * scale, oy + (ry - 1) * scale, scale, scale);
-      }
-    });
+    const paintHat = (offsetX, offsetY, flatColor) => {
+      hat.forEach((row, ry) => {
+        for (let rx = 0; rx < row.length; rx++) {
+          if (row[rx] !== "A") continue;
+          ctx.fillStyle = flatColor || p.hatColor || "#fff";
+          ctx.fillRect(ox + rx * scale + offsetX, oy + (ry - 1) * scale + offsetY, scale, scale);
+        }
+      });
+    };
+    paintHat(-1, 0, OUTLINE);
+    paintHat(1, 0, OUTLINE);
+    paintHat(0, -1, OUTLINE);
+    paintHat(0, 1, OUTLINE);
+    paintHat(0, 0, null);
   }
   // 안경 (뒷모습에서는 생략)
   if (p.glasses && face !== "up") {
@@ -137,6 +155,127 @@ function drawCharacter(ctx, presetName, px, py, anim, outfitPalette) {
 function noise(x, y, i) {
   const n = Math.sin(x * 127.1 + y * 311.7 + i * 74.7) * 43758.5453;
   return n - Math.floor(n);
+}
+
+// 건물 벽 한 칸을 그린다. 위 타일이 건물이 아니면 지붕 캡을, 바닥에 닿는 줄이면 접지 그림자를 얹어
+// '땅에 붙은 사각형'이 아니라 입체감 있는 건물처럼 보이게 한다. 테마별로 지붕 모양/창문/장식이 달라진다.
+function drawBuildingWall(ctx, px, py, tx, ty, theme, time, isDoor, isExit) {
+  const aboveIsBuilding = "BDE".includes(tileAt(tx, ty - 1));
+  const belowIsBuilding = "BDE".includes(tileAt(tx, ty + 1));
+  const isTopRow = !aboveIsBuilding;
+  const isBottomRow = !belowIsBuilding;
+
+  // 벽 바탕 (아래로 갈수록 살짝 어두워지는 2톤 음영으로 평면 느낌을 줄인다)
+  ctx.fillStyle = theme.wall;
+  ctx.fillRect(px, py, TILE, TILE);
+  ctx.fillStyle = theme.wallDark;
+  ctx.fillRect(px, py + TILE - 10, TILE, 10);
+
+  // 벽돌/판넬 결 (은은하게, 스타일 대비를 해치지 않는 선에서)
+  ctx.fillStyle = "rgba(0,0,0,0.08)";
+  for (let row = 0; row < 4; row++) {
+    const offset = row % 2 === 0 ? 0 : 8;
+    for (let col = -1; col < 3; col++) ctx.fillRect(px + offset + col * 16 + 1, py + row * 8 + 1, 14, 5);
+  }
+
+  // 지붕: 건물 맨 윗줄에만 얹어서 벽보다 튀어나온 것처럼 보이게 한다
+  if (isTopRow) {
+    const roofH = 11;
+    if (theme.style === "cafe" || theme.style === "conbini" || theme.style === "stall") {
+      // 줄무늬 차양(어닝)
+      ctx.fillStyle = theme.roof;
+      ctx.fillRect(px, py, TILE, roofH);
+      ctx.fillStyle = theme.trim;
+      for (let i = 0; i < 4; i++) ctx.fillRect(px + i * 8, py, 4, roofH);
+      ctx.fillStyle = theme.roofDark;
+      ctx.fillRect(px, py + roofH - 2, TILE, 2);
+    } else if (theme.style === "hanok") {
+      // 기와지붕: 대각 결을 넣어 전통 기와 느낌
+      ctx.fillStyle = theme.roof;
+      ctx.fillRect(px, py, TILE, roofH);
+      ctx.fillStyle = theme.roofDark;
+      for (let i = -1; i < 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(px + i * 8, py + roofH);
+        ctx.lineTo(px + i * 8 + 6, py);
+        ctx.lineTo(px + i * 8 + 9, py);
+        ctx.lineTo(px + i * 8 + 3, py + roofH);
+        ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = theme.roof;
+      ctx.fillRect(px, py, TILE, roofH);
+      ctx.fillStyle = theme.roofDark;
+      ctx.fillRect(px, py + roofH - 2, TILE, 2);
+    }
+    // 처마 그림자 (지붕이 벽 위에 얹힌 듯한 굵은 하이라이트 라인)
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.fillRect(px, py, TILE, 2);
+  }
+
+  // 창문 / 스타일별 장식: 문이 아닌 칸에만, 지붕 캡 아래 여유 공간에 그린다
+  if (!isDoor) {
+    const wy = isTopRow ? py + 15 : py + 6;
+    if (theme.style === "flower" || theme.style === "guesthouse") {
+      // 창틀 + 화분 박스
+      ctx.fillStyle = theme.trim;
+      ctx.fillRect(px + 8, py + (isTopRow ? 14 : 5), 16, 10);
+      ctx.fillStyle = theme.window;
+      ctx.fillRect(px + 10, py + (isTopRow ? 16 : 7), 12, 6);
+      ctx.fillStyle = "#7a5a3a";
+      ctx.fillRect(px + 7, py + (isTopRow ? 24 : 13), 18, 3);
+      const dots = ["#e06c88", "#f0d060", "#e8e8f0"];
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = dots[i];
+        ctx.fillRect(px + 9 + i * 5, py + (isTopRow ? 22 : 11), 3, 3);
+      }
+    } else if (theme.style === "bakery" || theme.style === "hanok") {
+      // 작은 격자창
+      ctx.fillStyle = theme.trim;
+      ctx.fillRect(px + 9, py + wy - py, 14, 10);
+      ctx.fillStyle = theme.window;
+      ctx.fillRect(px + 11, py + wy - py + 2, 10, 6);
+      ctx.fillStyle = theme.trim;
+      ctx.fillRect(px + 15, py + wy - py + 2, 2, 6);
+    } else {
+      // 모던/오피스/편의점 등: 큰 통유리창
+      ctx.fillStyle = theme.trim;
+      ctx.fillRect(px + 6, py + wy - py, 20, 12);
+      ctx.fillStyle = theme.window;
+      ctx.fillRect(px + 8, py + wy - py + 2, 16, 8);
+      ctx.strokeStyle = theme.trim;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px + 16, py + wy - py + 2);
+      ctx.lineTo(px + 16, py + wy - py + 10);
+      ctx.stroke();
+    }
+  }
+
+  // 문
+  if (isDoor) {
+    ctx.fillStyle = theme.roofDark;
+    ctx.fillRect(px + 4, py + 4, TILE - 8, TILE - 4);
+    ctx.fillStyle = theme.wallDark;
+    ctx.fillRect(px + 7, py + 7, TILE - 14, TILE - 10);
+    if (isExit) {
+      const glow = Math.sin((time || 0) / 400) > 0 ? "#f0d060" : "#d8b850";
+      ctx.strokeStyle = glow;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px + 4, py + 4, TILE - 8, TILE - 5);
+      ctx.fillStyle = glow;
+      ctx.fillRect(px + TILE - 12, py + 17, 3, 3);
+    } else {
+      ctx.fillStyle = theme.trim;
+      ctx.fillRect(px + TILE - 11, py + 17, 3, 3);
+    }
+  }
+
+  // 접지 그림자: 건물이 땅과 닿는 맨 아랫줄에만, 발밑을 살짝 눌러줘서 '붙어있는' 느낌을 없앤다
+  if (isBottomRow) {
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.fillRect(px, py + TILE - 3, TILE, 3);
+  }
 }
 
 function drawTile(ctx, code, tx, ty, time) {
@@ -266,45 +405,19 @@ function drawTile(ctx, code, tx, ty, time) {
       }
       break;
     }
-    case "B": { // 건물 벽 (벽돌)
-      ctx.fillStyle = "#b0705a";
-      ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = "#9a5e4a";
-      for (let row = 0; row < 4; row++) {
-        const offset = row % 2 === 0 ? 0 : 8;
-        for (let col = -1; col < 3; col++) {
-          ctx.fillRect(px + offset + col * 16 + 1, py + row * 8 + 1, 14, 6);
-        }
-      }
-      // 지붕 라인 (위 타일이 건물이 아니면)
-      if (tileAt(tx, ty - 1) !== "B" && tileAt(tx, ty - 1) !== "D") {
-        ctx.fillStyle = "#5a3a3a";
-        ctx.fillRect(px, py, TILE, 6);
-      }
+    case "B": { // 건물 벽 (테마별 색상 + 창문으로 건물마다 개성을 준다)
+      const theme = (typeof themeAt === "function" && themeAt(tx, ty)) || DEFAULT_BUILDING_THEME;
+      drawBuildingWall(ctx, px, py, tx, ty, theme, time, false);
       break;
     }
     case "D": { // 문
-      ctx.fillStyle = "#b0705a";
-      ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = "#6a4a32";
-      ctx.fillRect(px + 4, py + 4, TILE - 8, TILE - 4);
-      ctx.fillStyle = "#8a6a4a";
-      ctx.fillRect(px + 7, py + 7, TILE - 14, TILE - 10);
-      ctx.fillStyle = "#f0d060";
-      ctx.fillRect(px + TILE - 11, py + 17, 3, 3);
+      const theme = (typeof themeAt === "function" && themeAt(tx, ty)) || DEFAULT_BUILDING_THEME;
+      drawBuildingWall(ctx, px, py, tx, ty, theme, time, true);
       break;
     }
     case "E": { // 실외 출입구 (빛나는 문)
-      ctx.fillStyle = "#b0705a";
-      ctx.fillRect(px, py, TILE, TILE);
-      const glow = Math.sin(time / 400) > 0 ? "#f0d060" : "#d8b850";
-      ctx.fillStyle = "#6a4a32";
-      ctx.fillRect(px + 4, py + 4, TILE - 8, TILE - 4);
-      ctx.strokeStyle = glow;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(px + 4, py + 4, TILE - 8, TILE - 5);
-      ctx.fillStyle = glow;
-      ctx.fillRect(px + TILE - 12, py + 17, 3, 3);
+      const theme = (typeof themeAt === "function" && themeAt(tx, ty)) || DEFAULT_BUILDING_THEME;
+      drawBuildingWall(ctx, px, py, tx, ty, theme, time, true, true);
       break;
     }
     case "S": { // 무대
@@ -339,6 +452,27 @@ function drawTile(ctx, code, tx, ty, time) {
       ctx.fillStyle = "#6a4a32";
       ctx.fillRect(px + 5, py + 20, 4, 8);
       ctx.fillRect(px + TILE - 9, py + 20, 4, 8);
+      break;
+    }
+    case "L": { // 키 큰 풀숲 (지나가면 즉흥 훈련 인카운터가 걸릴 수 있다)
+      ctx.fillStyle = "#3e7a3e";
+      ctx.fillRect(px, py, TILE, TILE);
+      const sway = Math.sin(time / 500 + tx * 0.7 + ty * 1.3) * 1.4;
+      ctx.fillStyle = "#4e9a4e";
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+          const bx = px + 2 + col * 7 + (row % 2 ? 2 : 0);
+          const by = py + 2 + row * 7;
+          const lean = sway * (row % 2 ? 1 : -1);
+          ctx.beginPath();
+          ctx.moveTo(bx, by + 6);
+          ctx.lineTo(bx + 2 + lean, by);
+          ctx.lineTo(bx + 4, by + 6);
+          ctx.fill();
+        }
+      }
+      ctx.fillStyle = "rgba(20,50,20,0.25)";
+      ctx.fillRect(px, py + TILE - 4, TILE, 4);
       break;
     }
   }

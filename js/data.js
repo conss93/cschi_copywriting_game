@@ -474,6 +474,71 @@ const STORY = [
   },
 ];
 
+// ---------- 연습 마당 즉흥 훈련 (풀숲 인카운터) ----------
+// 특정 NPC 없이, 풀숲(L 타일)을 지나가다 무작위로 걸리는 짧은 카피 훈련. 반복 가능하며
+// 정식 의뢰보다 보상은 작지만, 레벨업을 위해 꾸준히 돌 수 있는 '사냥터' 역할을 한다.
+const PRACTICE_DRILLS = [
+  {
+    title: "즉흥 훈련: 간판 한 줄",
+    briefing: "풀숲에서 갑자기 문구가 떠올랐다. 놓치기 전에 붙잡자!",
+    mission: "아무 가게나 떠올려, 발길을 멈추게 할 간판 문구를 12자 이내로 써라.",
+    lesson: "짧고 구체적인 한 줄이, 길고 뻔한 설명보다 강하다.",
+    example: "9시 이후 반값",
+    minLength: 3, reward: { xp: 20, points: 40 },
+    checks: [
+      { desc: "12자 이내", test: (t) => t.length <= 12 },
+      { desc: "'최고·대박' 같은 상투어 회피", test: (t) => !/최고|대박|짱/.test(t) },
+    ],
+  },
+  {
+    title: "즉흥 훈련: 3초 후킹",
+    briefing: "풀잎이 스치는 소리 사이로, 릴스 훅 문장 하나가 스쳐 지나간다.",
+    mission: "궁금증을 유발하는 숏폼 훅 문장을 20자 이내로 써라.",
+    lesson: "훅은 결론을 말하지 않는다. 결론을 보고 싶게 만들 뿐이다.",
+    example: "이거 3초 안에 못 끊으면 지는 겁니다",
+    minLength: 4, reward: { xp: 20, points: 40 },
+    checks: [
+      { desc: "20자 이내", test: (t) => t.length <= 20 },
+      { desc: "궁금증 유발 요소 (왜·비밀·숫자 등)", test: (t) => /왜|비밀|\d|몰랐|충격/.test(t) },
+    ],
+  },
+  {
+    title: "즉흥 훈련: 한 줄 CTA",
+    briefing: "누군가의 발걸음을 붙잡을 버튼 문구가 머릿속을 스친다.",
+    mission: "행동을 부르는 CTA 문구를 10자 이내로 써라.",
+    lesson: "CTA는 명령이 아니라 초대다.",
+    example: "지금 받아가기",
+    minLength: 3, reward: { xp: 25, points: 50 },
+    checks: [
+      { desc: "10자 이내", test: (t) => t.length <= 10 },
+      { desc: "'제출·확인' 같은 기계적 단어 회피", test: (t) => !/제출|확인|클릭/.test(t) },
+    ],
+  },
+  {
+    title: "즉흥 훈련: 타겟 좁히기",
+    briefing: "막연한 '모두'가 아니라, 단 한 사람을 떠올려보자.",
+    mission: "아주 구체적인 한 사람을 겨냥한 한 문장을 30자 이내로 써라.",
+    lesson: "타겟을 좁힐수록 카피는 강해진다.",
+    example: "월요일 아침, 커피 없인 못 움직이는 당신에게",
+    minLength: 6, reward: { xp: 25, points: 50 },
+    checks: [
+      { desc: "30자 이내", test: (t) => t.length <= 30 },
+      { desc: "'모두·누구나' 회피", test: (t) => !/모두|누구나|여러분/.test(t) },
+    ],
+  },
+  {
+    title: "즉흥 훈련: 압축의 미학",
+    briefing: "긴 설명 대신, 딱 한 단어의 무게를 시험해보자.",
+    mission: "핵심 가치를 8자 이내로 압축한 슬로건을 써라.",
+    lesson: "카피라이팅의 절반은 지우는 일이다.",
+    example: "짧고, 확실하게",
+    minLength: 2, reward: { xp: 30, points: 60 },
+    checks: [
+      { desc: "8자 이내", test: (t) => t.length <= 8 },
+    ],
+  },
+];
+
 // ---------- 상점 아이템 (편의점 '카피24') ----------
 const SHOP_ITEMS = [
   { id: "coffee", name: "아이스 아메리카노", icon: "🧋", price: 300, type: "consumable",
@@ -506,4 +571,6 @@ const ACHIEVEMENTS = [
   { id: "chatty", icon: "💬", name: "골목 수다왕", desc: "NPC와 잡담을 10번 나눴다.", cond: (s) => (s.chatCount || 0) >= 10 },
   { id: "caffeine", icon: "🧋", name: "카페인 수혈", desc: "아메리카노를 5잔 샀다.", cond: (s) => (s.coffeesBought || 0) >= 5 },
   { id: "level5", icon: "⭐", name: "떠오르는 신예", desc: "레벨 5에 도달했다.", cond: (s) => s.level >= 5 },
+  { id: "level10", icon: "🌟", name: "골목의 에이스", desc: "레벨 10에 도달했다.", cond: (s) => s.level >= 10 },
+  { id: "grassGrinder", icon: "🌾", name: "풀숲의 단골", desc: "연습 마당에서 즉흥 훈련을 10번 완수했다.", cond: (s) => (s.practiceCount || 0) >= 10 },
 ];

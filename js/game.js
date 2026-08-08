@@ -23,6 +23,7 @@
     coffees: 0,
     coffeesBought: 0,
     chatCount: 0,
+    practiceCount: 0,
     medals: [],
     flags: {}, // 스토리 플래그 (tutorialDone, marketOpen, ending …)
     storyDone: [], // 재생 완료된 스토리 이벤트 id
@@ -196,6 +197,51 @@
         }
       },
     });
+  }
+
+  // ---------- 연습 마당 즉흥 훈련 (풀숲 인카운터) ----------
+  const PRACTICE_NPC = {
+    id: "practice", name: "골목의 감", title: "즉흥 훈련", color: "#8aa06a",
+    persona: "당신은 '골목의 감', 풀숲에서 불쑥 나타나 즉흥 카피 대결을 거는 정체불명의 존재다. 짧고 리듬감 있게 말하며, 정식 의뢰보다는 가볍게 순발력을 시험하는 태도를 취한다. 잘 쓰면 화끈하게 칭찬하고, 못 쓰면 장난스럽게 놀린다.",
+  };
+
+  function startPractice() {
+    const drill = PRACTICE_DRILLS[Math.floor(Math.random() * PRACTICE_DRILLS.length)];
+    const quest = Object.assign({ id: "practice", type: "practice" }, drill);
+    UI.showQuest(quest, PRACTICE_NPC, state, {
+      onCoffee: () => false, // 훈련은 힌트 없이 순발력으로
+      onSubmit: (text) => submitPractice(quest, text),
+    });
+  }
+
+  async function submitPractice(quest, text) {
+    UI.showGrading(PRACTICE_NPC.name);
+    let result;
+    if (AI.hasKey()) {
+      try {
+        result = await AI.grade(quest, PRACTICE_NPC, text, state.name);
+      } catch (e) {
+        result = ruleGrade(quest, text);
+      }
+    } else {
+      result = ruleGrade(quest, text);
+    }
+    state.bestScore = Math.max(state.bestScore, result.score);
+    let leveledUp = false;
+    let newMedals = [];
+    if (result.pass) {
+      state.practiceCount = (state.practiceCount || 0) + 1;
+      state.points += quest.reward.points;
+      state.totalEarned += quest.reward.points;
+      leveledUp = addXp(quest.reward.xp);
+      newMedals = checkMedals(true);
+    }
+    result.reward = result.pass ? quest.reward : null;
+    result.leveledUp = leveledUp;
+    result.newMedals = newMedals;
+    save();
+    UI.updateHUD(state);
+    UI.showQuestResult(quest, PRACTICE_NPC, result, { onClose: () => {} });
   }
 
   // ---------- NPC 상호작용 ----------
@@ -446,11 +492,21 @@
   // 전체 맵을 한눈에 보여주는 대신, 플레이어를 따라다니는 카메라로 가까이서 본다 (포켓몬 골드식).
   // 화면이 좁으면(모바일) 세로로 긴 뷰포트, 넓으면(데스크톱) 가로로 넓은 뷰포트를 쓴다.
   let viewport = { w: 15, h: 10 };
+  let vpPxW = viewport.w * TILE;
+  let vpPxH = viewport.h * TILE;
+  // 캔버스 표시 크기(CSS)에 맞춰 정수배로 실제 래스터 해상도를 올려서, 확대된 카메라 시야가
+  // 뭉개지지 않고 또렷하게(레티나 대응 포함) 보이도록 한다. 게임 로직상의 좌표(TILE 단위)는 그대로 유지.
   function updateViewport() {
     const mobile = window.matchMedia("(max-width: 640px)").matches;
     viewport = mobile ? { w: 8, h: 12 } : { w: 15, h: 10 };
-    canvas.width = viewport.w * TILE;
-    canvas.height = viewport.h * TILE;
+    vpPxW = viewport.w * TILE;
+    vpPxH = viewport.h * TILE;
+    const cssW = canvas.parentElement.clientWidth || canvas.clientWidth || vpPxW;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const renderScale = Math.max(1, Math.round((cssW * dpr) / vpPxW));
+    canvas.width = vpPxW * renderScale;
+    canvas.height = vpPxH * renderScale;
+    ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
     ctx.imageSmoothingEnabled = false;
   }
   updateViewport();
@@ -488,6 +544,12 @@
           return;
         }
         save();
+        // 풀숲(L)을 밟으면 일정 확률로 즉흥 훈련 인카운터 — 걷다 보면 걸리는 랜덤 조우
+        if (tileAt(player.x, player.y) === "L" && Math.random() < 0.16) {
+          queuedMove = null;
+          startPractice();
+          return;
+        }
         if (queuedMove) {
           const [qdx, qdy] = queuedMove;
           queuedMove = null;
@@ -553,9 +615,9 @@
       const hint = target.npc ? "SPACE: " + target.npc.name + "와 대화" : "SPACE: 편의점 들어가기";
       const hw = ctx.measureText(hint).width + 16;
       ctx.fillStyle = "rgba(0,0,0,0.65)";
-      ctx.fillRect(canvas.width / 2 - hw / 2, canvas.height - 28, hw, 20);
+      ctx.fillRect(vpPxW / 2 - hw / 2, vpPxH - 28, hw, 20);
       ctx.fillStyle = "#f0d060";
-      ctx.fillText(hint, canvas.width / 2 - hw / 2 + 8, canvas.height - 14);
+      ctx.fillText(hint, vpPxW / 2 - hw / 2 + 8, vpPxH - 14);
     }
   }
 
@@ -570,6 +632,7 @@
   // ---------- 시작 ----------
   function startGame(isNew) {
     document.getElementById("game-wrap").classList.remove("hidden");
+    updateViewport(); // 이제 실제 표시 크기를 측정할 수 있으므로 해상도 재계산
     setCurrentMap(state.map);
     player.x = player.fromX = state.px;
     player.y = player.fromY = state.py;
