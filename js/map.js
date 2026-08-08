@@ -51,14 +51,14 @@ const MAPS = {
       "                        ", // 0
       "                        ", // 1
       "    xxxxxxxxxxxxxxxx    ", // 2
-      "    xggggggxxggggggx    ", // 3  원두 진열장
-      "    xffffffffffffffx    ", // 4
-      "    xfffffffffffffpx    ", // 5
-      "    xfffkkkfkkkffffx    ", // 6  테이블
-      "    xffffffffffffffx    ", // 7
-      "    xfoofffffffooffx    ", // 8  좌석
+      "    xggggggggggggggx    ", // 3  원두 진열 선반
+      "    xCCCCCCCCCCCCCCx    ", // 4  바 카운터 (에스프레소 머신)
+      "    xffffffffffffffx    ", // 5
+      "    xffkffffkfffkffx    ", // 6  원형 테이블 3개
+      "    xffffffffffffffx    ", // 7  손님들이 앉아 즐기는 자리
+      "    xfoofffffffooffx    ", // 8  좌석 러그
       "    xffffffffffffffx    ", // 9
-      "    xpffffffffffffpx    ", // 10
+      "    xpffffffffffffpx    ", // 10 화분
       "    xxxxxxxExxxxxxxx    ", // 11 출구 E(11,11)
       "                        ", // 12
       "                        ", // 13
@@ -176,7 +176,7 @@ function themeAt(x, y) {
 // 편의점 문 (마을에서 앞에 서서 스페이스)
 const SHOP_DOOR = { map: "town", x: 10, y: 13 };
 
-const SOLID_TILES = new Set(["T", "W", "B", "D", "b", "S", "M", "x", "k", "p", "g", " "]);
+const SOLID_TILES = new Set(["T", "W", "B", "D", "b", "S", "M", "x", "k", "p", "g", "C", " "]);
 
 // 현재 맵 (game.js가 setCurrentMap으로 변경)
 let currentMapId = "town";

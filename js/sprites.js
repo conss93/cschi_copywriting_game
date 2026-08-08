@@ -57,6 +57,8 @@ const CHAR_PRESETS = {
   flower: { body: BODY_LONG, hair: "#6a4a5a", skin: "#f5d0aa", cloth: "#e88ab0", cloth2: "#cc6f96", pants: "#5a4a52", hat: "none" },
   fish: { body: BODY_SHORT, hair: "#3a2a1a", skin: "#e8b890", cloth: "#f0b03c", cloth2: "#d09428", pants: "#4a4a52", hat: "cap", hatColor: "#f0b03c" },
   corp: { body: BODY_SHORT, hair: "#4a4a54", skin: "#f0c8a0", cloth: "#8a8a9a", cloth2: "#6e6e7e", pants: "#2a2a34", hat: "none", glasses: true },
+  laptopper: { body: BODY_LONG, hair: "#2a3a4a", skin: "#f5d0aa", cloth: "#5c7ae0", cloth2: "#4a63c0", pants: "#3a3a44", hat: "none", glasses: true },
+  reader: { body: BODY_SHORT, hair: "#3a2a1a", skin: "#f0c8a0", cloth: "#c2905c", cloth2: "#a8794a", pants: "#4a4a52", hat: "none" },
 };
 
 // 캐릭터를 (px, py) 픽셀 위치에 그린다.
@@ -288,33 +290,74 @@ function drawTile(ctx, code, tx, ty, time) {
     ctx.fillRect(px, py, TILE, TILE);
     return;
   }
-  if ("xfokpg".includes(code) || (code === "E" && currentMapId === "office")) {
-    // 마루 바닥 공통
-    ctx.fillStyle = "#c9a06a";
+  // 실내 맵 목록 — 새 실내 맵을 추가하면 여기 등록해야 실내용 바닥/출구 렌더링을 탄다.
+  const INDOOR_MAPS = { office: true, cafe: true };
+  if ("xfokpgC".includes(code) || (code === "E" && INDOOR_MAPS[currentMapId])) {
+    const isCafe = currentMapId === "cafe";
+    // 마루 바닥: 카페는 좀 더 붉은기 도는 원목 톤, 사무실은 기존 톤 유지 — 공간마다 다른 느낌을 준다
+    ctx.fillStyle = isCafe ? "#c98a5a" : "#c9a06a";
     ctx.fillRect(px, py, TILE, TILE);
-    ctx.fillStyle = "#b8905c";
+    ctx.fillStyle = isCafe ? "#b87848" : "#b8905c";
     ctx.fillRect(px, py + 15, TILE, 2);
     ctx.fillRect(px + (ty % 2 ? 8 : 20), py, 2, TILE);
+    // 마루널 결 텍스처 (은은한 세로 줄무늬)
+    ctx.fillStyle = "rgba(0,0,0,0.05)";
+    ctx.fillRect(px + ((tx + ty) % 2 ? 12 : 4), py, 1, TILE);
     switch (code) {
-      case "x": // 실내 벽
-        ctx.fillStyle = "#5a4a5e";
+      case "x": // 실내 벽: 아래쪽에 걸레받이(baseboard)를 더해 평면 느낌을 줄인다
+        ctx.fillStyle = isCafe ? "#4a3428" : "#5a4a5e";
         ctx.fillRect(px, py, TILE, TILE);
-        ctx.fillStyle = "#6a5a6e";
+        ctx.fillStyle = isCafe ? "#5c4434" : "#6a5a6e";
         ctx.fillRect(px, py, TILE, 8);
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.fillRect(px, py + TILE - 5, TILE, 5);
+        ctx.fillStyle = "rgba(255,255,255,0.06)";
+        ctx.fillRect(px, py + TILE - 5, TILE, 1);
         break;
       case "o": // 러그
-        ctx.fillStyle = "#a34a4a";
-        ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
-        ctx.fillStyle = "#c26a5a";
-        ctx.fillRect(px + 6, py + 6, TILE - 12, TILE - 12);
+        if (isCafe) {
+          ctx.fillStyle = "#5a3a2c";
+          ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
+          ctx.fillStyle = "#7a5238";
+          ctx.fillRect(px + 6, py + 6, TILE - 12, TILE - 12);
+        } else {
+          ctx.fillStyle = "#a34a4a";
+          ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
+          ctx.fillStyle = "#c26a5a";
+          ctx.fillRect(px + 6, py + 6, TILE - 12, TILE - 12);
+        }
         break;
-      case "k": // 책상
-        ctx.fillStyle = "#7a5a3a";
-        ctx.fillRect(px + 1, py + 6, TILE - 2, TILE - 12);
-        ctx.fillStyle = "#8a6a48";
-        ctx.fillRect(px + 1, py + 6, TILE - 2, 6);
-        ctx.fillStyle = "#dde8f0"; // 서류
-        ctx.fillRect(px + 6, py + 10, 8, 6);
+      case "k": // 책상 / 카페 테이블
+        if (isCafe) {
+          // 동그란 원목 테이블 + 커피잔
+          ctx.fillStyle = "rgba(20,10,5,0.2)";
+          ctx.beginPath();
+          ctx.ellipse(px + 16, py + 26, 10, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#6a4428";
+          ctx.beginPath();
+          ctx.arc(px + 16, py + 16, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#8a5c38";
+          ctx.beginPath();
+          ctx.arc(px + 16, py + 16, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#f5f0e8";
+          ctx.beginPath();
+          ctx.arc(px + 19, py + 13, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#5c3a1e";
+          ctx.beginPath();
+          ctx.arc(px + 19, py + 13, 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = "#7a5a3a";
+          ctx.fillRect(px + 1, py + 6, TILE - 2, TILE - 12);
+          ctx.fillStyle = "#8a6a48";
+          ctx.fillRect(px + 1, py + 6, TILE - 2, 6);
+          ctx.fillStyle = "#dde8f0"; // 서류
+          ctx.fillRect(px + 6, py + 10, 8, 6);
+        }
         break;
       case "p": // 화분
         ctx.fillStyle = "#8a5a3a";
@@ -323,15 +366,40 @@ function drawTile(ctx, code, tx, ty, time) {
         ctx.beginPath();
         ctx.arc(px + 16, py + 12, 8, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = "#5fa15c";
+        ctx.beginPath();
+        ctx.arc(px + 12, py + 9, 4, 0, Math.PI * 2);
+        ctx.fill();
         break;
-      case "g": // 책장
-        ctx.fillStyle = "#6a4a32";
-        ctx.fillRect(px, py, TILE, TILE);
-        const bookColors = ["#c25c5c", "#5c8ac2", "#c2a05c", "#5cb8a7"];
-        for (let row = 0; row < 2; row++) {
-          for (let i = 0; i < 4; i++) {
-            ctx.fillStyle = bookColors[(i + row + tx) % 4];
-            ctx.fillRect(px + 3 + i * 7, py + 4 + row * 14, 5, 10);
+      case "g": // 책장 / 카페 원두 진열대
+        if (isCafe) {
+          ctx.fillStyle = "#4a3020";
+          ctx.fillRect(px, py, TILE, TILE);
+          // 원두 자루(마대) 두 개
+          const sackColors = ["#a87848", "#8a5c34"];
+          for (let i = 0; i < 2; i++) {
+            const sx = px + 4 + i * 14;
+            ctx.fillStyle = sackColors[i % 2];
+            ctx.beginPath();
+            ctx.ellipse(sx + 5, py + 20, 6, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#3a2818";
+            for (let d = 0; d < 5; d++) {
+              ctx.fillRect(sx + 2 + noise(tx, ty, d + i * 5) * 6, py + 15 + noise(tx, ty, d + 10) * 8, 1.5, 1.5);
+            }
+          }
+          ctx.fillStyle = "#e8d8b8";
+          ctx.font = "8px sans-serif";
+          ctx.fillText("BEANS", px + 4, py + 8);
+        } else {
+          ctx.fillStyle = "#6a4a32";
+          ctx.fillRect(px, py, TILE, TILE);
+          const bookColors = ["#c25c5c", "#5c8ac2", "#c2a05c", "#5cb8a7"];
+          for (let row = 0; row < 2; row++) {
+            for (let i = 0; i < 4; i++) {
+              ctx.fillStyle = bookColors[(i + row + tx) % 4];
+              ctx.fillRect(px + 3 + i * 7, py + 4 + row * 14, 5, 10);
+            }
           }
         }
         break;
@@ -342,6 +410,27 @@ function drawTile(ctx, code, tx, ty, time) {
         ctx.font = "bold 14px sans-serif";
         ctx.fillText("▼", px + 10, py + 21);
         break;
+      case "C": { // 카페 바 카운터
+        ctx.fillStyle = "#3a2818";
+        ctx.fillRect(px, py, TILE, TILE);
+        ctx.fillStyle = "#5c4028";
+        ctx.fillRect(px, py, TILE, 10);
+        ctx.fillStyle = "#2a1c10";
+        ctx.fillRect(px, py + 8, TILE, 2);
+        if (tx % 3 === 0) { // 세 칸마다 에스프레소 머신 실루엣
+          ctx.fillStyle = "#9a9aa2";
+          ctx.fillRect(px + 8, py + 1, 16, 7);
+          ctx.fillStyle = "#d8c8b0";
+          ctx.fillRect(px + 10, py + 3, 4, 3);
+          ctx.fillRect(px + 18, py + 3, 4, 3);
+        } else {
+          ctx.fillStyle = "#e8d8b8";
+          ctx.beginPath();
+          ctx.arc(px + 16, py + 4, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+      }
     }
     return;
   }
