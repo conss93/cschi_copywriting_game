@@ -421,16 +421,71 @@
   });
   document.addEventListener("keyup", (e) => (keys[e.key] = false));
 
-  function bindTouch(id, key) {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    const on = (e) => { e.preventDefault(); keys[key] = true; if (!UI.isModalOpen() && !player.moving) { const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[key]; if (d) tryMove(d[0], d[1]); } };
-    const off = (e) => { e.preventDefault(); keys[key] = false; };
-    btn.addEventListener("touchstart", on, { passive: false });
-    btn.addEventListener("touchend", off, { passive: false });
-    btn.addEventListener("mousedown", on);
-    btn.addEventListener("mouseup", off);
-    btn.addEventListener("mouseleave", off);
+  // 아날로그 스틱: 손을 떼지 않고 드래그 방향을 바꿔가며 이동할 수 있게 한다.
+  // (기존 4버튼 D패드는 위로 가다가 오른쪽으로 틀려면 손을 떼고 다시 눌러야 했다.)
+  const DIR_VECTORS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+  function bindJoystick() {
+    const base = document.getElementById("joystick");
+    const knob = document.getElementById("joystick-knob");
+    if (!base || !knob) return;
+    const MAX_R = 30; // 스틱 손잡이 최대 이동 반경(px)
+    const DEAD_ZONE = 10; // 이 반경 안쪽은 중립(방향 없음)으로 취급
+    let activeId = null;
+    let currentDir = null;
+
+    function setDir(dir) {
+      if (currentDir === dir) return;
+      if (currentDir) keys[currentDir] = false;
+      currentDir = dir;
+      if (currentDir) {
+        keys[currentDir] = true;
+        if (!UI.isModalOpen() && !player.moving) {
+          const d = DIR_VECTORS[currentDir];
+          if (d) tryMove(d[0], d[1]);
+        }
+      }
+    }
+
+    function updateFromPoint(clientX, clientY) {
+      const rect = base.getBoundingClientRect();
+      const dx = clientX - (rect.left + rect.width / 2);
+      const dy = clientY - (rect.top + rect.height / 2);
+      const dist = Math.hypot(dx, dy);
+      if (dist < DEAD_ZONE) {
+        knob.style.transform = "translate(0px, 0px)";
+        setDir(null);
+        return;
+      }
+      const clamped = Math.min(dist, MAX_R);
+      const angle = Math.atan2(dy, dx);
+      knob.style.transform = "translate(" + (Math.cos(angle) * clamped) + "px, " + (Math.sin(angle) * clamped) + "px)";
+      // 4방향 중 더 크게 기울어진 축으로 스냅 (그리드 기반 이동이라 대각선은 없다)
+      const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "ArrowRight" : "ArrowLeft") : (dy > 0 ? "ArrowDown" : "ArrowUp");
+      setDir(dir);
+    }
+
+    function onDown(e) {
+      if (activeId !== null) return;
+      activeId = e.pointerId;
+      base.setPointerCapture(activeId);
+      updateFromPoint(e.clientX, e.clientY);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (e.pointerId !== activeId) return;
+      updateFromPoint(e.clientX, e.clientY);
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (e.pointerId !== activeId) return;
+      activeId = null;
+      knob.style.transform = "translate(0px, 0px)";
+      setDir(null);
+    }
+    base.addEventListener("pointerdown", onDown);
+    base.addEventListener("pointermove", onMove);
+    base.addEventListener("pointerup", onUp);
+    base.addEventListener("pointercancel", onUp);
   }
 
   // ---------- 이동 ----------
@@ -665,10 +720,7 @@
       if (confirm("타이틀로 돌아갈까요? (진행은 저장되어 있어요)")) UI.backToTitle();
     });
 
-    bindTouch("pad-up", "ArrowUp");
-    bindTouch("pad-down", "ArrowDown");
-    bindTouch("pad-left", "ArrowLeft");
-    bindTouch("pad-right", "ArrowRight");
+    bindJoystick();
     const actBtn = document.getElementById("pad-action");
     if (actBtn) {
       actBtn.addEventListener("touchstart", (e) => { e.preventDefault(); if (!UI.isModalOpen()) interact(); }, { passive: false });
