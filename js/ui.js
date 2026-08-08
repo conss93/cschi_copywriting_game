@@ -565,11 +565,29 @@ const UI = (function () {
     $("#btn-medals-close").onclick = () => closeModals();
   }
 
+  // ---------- 골목 수집품 ----------
+  function showCollection(state) {
+    openModal("collection-modal");
+    const stamps = state.stamps || [];
+    $("#collection-count").textContent = stamps.length + " / " + COLLECTIBLES.length;
+    const grid = $("#collection-grid");
+    grid.innerHTML = "";
+    COLLECTIBLES.forEach((c) => {
+      const got = stamps.includes(c.id);
+      const card = el("div", "medal" + (got ? " earned" : ""));
+      card.appendChild(el("div", "medal-icon", got ? c.icon : "❓"));
+      card.appendChild(el("div", "medal-name", got ? c.name : "???"));
+      card.appendChild(el("div", "medal-desc", got ? c.desc : "아직 발견하지 못했다"));
+      grid.appendChild(card);
+    });
+    $("#btn-collection-close").onclick = () => closeModals();
+  }
+
   return {
     isModalOpen, closeModals, toast,
     showTitle, backToTitle, runIntro, playStory,
     updateHUD, updateObjective,
     showDialogue, showThinking, handleDialogueKey, showChatInput, showQuest, showMinigame, showGrading, showQuestResult,
-    showShop, showSettings, showHelp, showMedals,
+    showShop, showSettings, showHelp, showMedals, showCollection,
   };
 })();

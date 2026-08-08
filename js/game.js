@@ -26,6 +26,7 @@
     practiceCount: 0,
     affinity: {}, // npcId -> 잡담 횟수 (친밀도)
     medals: [],
+    stamps: [], // 수집한 골목 수집품 id 목록
     flags: {}, // 스토리 플래그 (tutorialDone, marketOpen, ending …)
     storyDone: [], // 재생 완료된 스토리 이벤트 id
     objective: "",
@@ -63,6 +64,14 @@
       up = true;
     }
     return up;
+  }
+
+  // 한글 받침 유무에 따라 조사를 골라준다 (예: josa("뱃지", "을", "를") → "를")
+  function josa(word, withBatchim, withoutBatchim) {
+    const ch = (word || "").trim().slice(-1);
+    const code = ch.charCodeAt(0) - 0xac00;
+    if (code < 0 || code > 11171) return withBatchim;
+    return code % 28 === 0 ? withoutBatchim : withBatchim;
   }
 
   function checkMedals(silent) {
@@ -705,6 +714,15 @@
           return;
         }
         save();
+        // 수집품 픽업: 처음 밟는 자리면 자동으로 줍는다
+        const found = COLLECTIBLES.find((c) => c.map === state.map && c.x === player.x && c.y === player.y);
+        if (found && !state.stamps.includes(found.id)) {
+          state.stamps.push(found.id);
+          checkMedals();
+          save();
+          UI.updateHUD(state);
+          UI.toast(found.icon + " " + found.name + josa(found.name, "을", "를") + " 주웠다!", true);
+        }
         // 풀숲(L)을 밟으면 일정 확률로 즉흥 훈련 인카운터 — 걷다 보면 걸리는 랜덤 조우
         if (tileAt(player.x, player.y) === "L" && Math.random() < 0.16) {
           queuedMove = null;
@@ -764,6 +782,14 @@
       }
     });
 
+    // 아직 못 찾은 수집품을 살짝 반짝이는 아이콘으로 표시
+    COLLECTIBLES.forEach((c) => {
+      if (c.map !== state.map || state.stamps.includes(c.id)) return;
+      const bob = Math.sin(time / 400 + c.x * 1.7) * 2;
+      ctx.font = "16px sans-serif";
+      ctx.fillText(c.icon, c.x * TILE + TILE / 2 - 8, c.y * TILE + TILE / 2 + 6 + bob);
+    });
+
     const ix = (player.fromX + (player.x - player.fromX) * player.progress) * TILE;
     const iy = (player.fromY + (player.y - player.fromY) * player.progress) * TILE;
     drawCharacter(ctx, state.charPreset, ix, iy, { moving: player.moving, progress: player.progress, face: player.face }, outfitPalette());
@@ -801,6 +827,7 @@
     UI.updateObjective(state.objective);
 
     document.getElementById("btn-medals").addEventListener("click", () => UI.showMedals(state));
+    document.getElementById("btn-collection").addEventListener("click", () => UI.showCollection(state));
     document.getElementById("btn-settings").addEventListener("click", () => UI.showSettings());
     document.getElementById("btn-title-back").addEventListener("click", () => {
       if (confirm("타이틀로 돌아갈까요? (진행은 저장되어 있어요)")) UI.backToTitle();

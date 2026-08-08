@@ -66,6 +66,7 @@
         <span id="hud-points"></span>
         <span id="hud-ai" title="채점 방식"></span>
         <button id="btn-medals" class="hud-btn" title="업적 메달">🏅</button>
+        <button id="btn-collection" class="hud-btn" title="골목 수집품">🧭</button>
         <button id="btn-settings" class="hud-btn" title="설정 (API 키)">⚙️</button>
         <button id="btn-title-back" class="hud-btn" title="타이틀로">🏠</button>
       </div>
@@ -178,6 +179,16 @@
       <h2>🏅 업적 메달 (<span id="medal-count"></span>)</h2>
       <div id="medal-grid"></div>
       <button id="btn-medals-close" class="btn ghost">닫기</button>
+    </div>
+  </div>
+
+  <!-- 골목 수집품 -->
+  <div id="collection-modal" class="modal hidden">
+    <div class="modal-box wide">
+      <h2>🧭 골목 수집품 (<span id="collection-count"></span>)</h2>
+      <p class="modal-sub">골목 곳곳을 걸어 다니다 보면 숨겨진 물건을 발견할 수 있어요.</p>
+      <div id="collection-grid"></div>
+      <button id="btn-collection-close" class="btn ghost">닫기</button>
     </div>
   </div>
 

@@ -21,7 +21,7 @@ const MAPS = {
       "T..rrrrrrrrrrrrrrrrrr..T", // 3
       "T..r...............Fr..T", // 4
       "T..r..BBBB...BBBB...r..T", // 5  채리로스터스 / 스테이여기
-      "T..r..BBDB...BBDB...r..T", // 6
+      "T..r..BBEB...BBDB...r..T", // 6  채리로스터스 입구 E(8,6) — 실내로 들어갈 수 있다
       "T..rrrrrrrrrrrrrrrrrrrrr", // 7  → 동쪽 끝(23,7)에서 시장길로
       "T..r......WW....LLLLr..T", // 8  연습 마당(풀숲) 시작
       "T..r..b...WW...bLLLLr..T", // 9
@@ -40,8 +40,33 @@ const MAPS = {
     ],
     warps: [
       { x: 17, y: 11, to: "office", tx: 11, ty: 10 },
+      { x: 8, y: 6, to: "cafe", tx: 11, ty: 10 },
       { x: 23, y: 7, to: "market", tx: 1, ty: 7, requires: "marketOpen", lockMsg: "아직 시장길에 갈 일이 없다. 골목 의뢰부터 해결하자." },
     ],
+  },
+
+  cafe: {
+    name: "채리로스터스 (실내)",
+    rows: [
+      "                        ", // 0
+      "                        ", // 1
+      "    xxxxxxxxxxxxxxxx    ", // 2
+      "    xggggggxxggggggx    ", // 3  원두 진열장
+      "    xffffffffffffffx    ", // 4
+      "    xfffffffffffffpx    ", // 5
+      "    xfffkkkfkkkffffx    ", // 6  테이블
+      "    xffffffffffffffx    ", // 7
+      "    xfoofffffffooffx    ", // 8  좌석
+      "    xffffffffffffffx    ", // 9
+      "    xpffffffffffffpx    ", // 10
+      "    xxxxxxxExxxxxxxx    ", // 11 출구 E(11,11)
+      "                        ", // 12
+      "                        ", // 13
+      "                        ", // 14
+      "                        ", // 15
+    ],
+    signs: [[8, 2, "채리로스터스"]],
+    warps: [{ x: 11, y: 11, to: "town", tx: 8, ty: 7 }],
   },
 
   market: {

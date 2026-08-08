@@ -1180,6 +1180,17 @@ const SHOP_ITEMS = [
     palette: { cloth: "#3a3a44", cloth2: "#26262e" }, desc: "프로 카피라이터의 상징. 마감이 다가올수록 어울린다." },
 ];
 
+// ---------- 골목 수집품 (플레이 타임을 늘려주는 탐험 요소) ----------
+// 맵 곳곳에 숨어 있는 작은 물건들. 그 위를 지나가면 한 번만 얻을 수 있다.
+const COLLECTIBLES = [
+  { id: "stamp_town_sign", map: "town", x: 5, y: 4, icon: "🪧", name: "골목 표지판 조각", desc: "오래돼서 글자가 반쯤 지워진 골목 표지판 조각." },
+  { id: "stamp_town_clover", map: "town", x: 18, y: 9, icon: "🍀", name: "네잎클로버", desc: "연습 마당 풀숲에서 찾은 네잎클로버." },
+  { id: "stamp_market_coin", map: "market", x: 10, y: 4, icon: "🪙", name: "오래된 동전", desc: "시장길 바닥에 떨어져 있던, 지금은 안 쓰는 동전." },
+  { id: "stamp_market_pebble", map: "market", x: 11, y: 14, icon: "🪨", name: "행운의 조약돌", desc: "시장길 풀숲 한가운데 놓여 있던 매끈한 조약돌." },
+  { id: "stamp_office_card", map: "office", x: 7, y: 9, icon: "📇", name: "빛바랜 명함", desc: "오팀장 사무실 구석에서 찾은, 다른 이름이 적힌 낡은 명함." },
+  { id: "stamp_cafe_bean", map: "cafe", x: 10, y: 8, icon: "☕", name: "커피콩 뱃지", desc: "채리로스터스 안쪽 테이블에 놓여 있던 커피콩 모양 뱃지." },
+];
+
 // ---------- 업적 메달 (16종) ----------
 const ACHIEVEMENTS = [
   { id: "tutorial", icon: "🪪", name: "출근 도장", desc: "골목기획에 첫 출근했다.", cond: (s) => !!s.flags.tutorialDone },
@@ -1203,4 +1214,6 @@ const ACHIEVEMENTS = [
   { id: "bestFriend", icon: "🤝", name: "베스트프렌드", desc: "한 사람과 잡담을 5번 이상 나눴다.", cond: (s) => Object.values(s.affinity || {}).some((n) => n >= 5) },
   { id: "wholeTown", icon: "🏘️", name: "온 동네 친구", desc: "골목의 모든 사람과 한 번씩 잡담을 나눴다.", cond: (s) => NPCS.every((n) => (s.affinity || {})[n.id] >= 1) },
   { id: "epilogue", icon: "🕊️", name: "완전한 해피엔딩", desc: "엔딩 이후의 에필로그 의뢰까지 모두 마쳤다.", cond: (s) => !!s.completed.s07 && !!s.completed.s08 && !!s.completed.s12 },
+  { id: "explorer", icon: "🔍", name: "골목 탐험가", desc: "숨겨진 수집품을 3개 이상 찾았다.", cond: (s) => (s.stamps || []).length >= 3 },
+  { id: "collector", icon: "🧭", name: "완벽한 수집가", desc: "골목의 모든 수집품을 찾았다.", cond: (s) => COLLECTIBLES.every((c) => (s.stamps || []).includes(c.id)) },
 ];

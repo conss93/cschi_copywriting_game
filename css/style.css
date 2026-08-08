@@ -453,7 +453,7 @@ textarea {
 .shop-desc { color: var(--dim); font-size: 0.8rem; }
 
 /* ---------- 메달 ---------- */
-#medal-grid {
+#medal-grid, #collection-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
